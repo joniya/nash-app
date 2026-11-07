@@ -360,3 +360,39 @@ body.gated nav{display:none}
 .pet-row b{font-size:13px;font-weight:800;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pet-ph.add{font-size:28px;color:var(--tan-d);box-shadow:0 0 0 2px var(--line);background:var(--soft2)}
 .add-chip{border-style:dashed;color:var(--tan-d)}
+
+/* ===== Liquid Glass («Скло») — у стилі iOS 26 ===== */
+[data-theme=glass]{--bg:#EEF1FA;--card:rgba(255,255,255,.52);--soft:rgba(255,255,255,.55);--soft2:rgba(255,255,255,.42);--tan:#5B6CFF;--tan-d:#3F4FE0;--ink:#151826;--ink2:#4F5672;--muted:#8A90A8;--line:rgba(255,255,255,.65);--dark:rgba(24,28,52,.78);--green:rgba(213,245,222,.75);--yellow:rgba(255,243,200,.75);--pink:rgba(255,225,235,.75);--hdr:rgba(255,255,255,.35);--b:#FF7AA8;--shadow:0 8px 32px rgba(40,50,110,.12);--glass-border:rgba(255,255,255,.75);--glass-hi:rgba(255,255,255,.9);--blob1:#8FA6FF;--blob2:#FF9EC4;--blob3:#7FE8D4}
+[data-theme=glassdark]{--bg:#0B0D18;--card:rgba(255,255,255,.08);--soft:rgba(255,255,255,.1);--soft2:rgba(255,255,255,.06);--tan:#8E9BFF;--tan-d:#B4BDFF;--ink:#F2F4FF;--ink2:#B7BDDA;--muted:#7D84A6;--line:rgba(255,255,255,.12);--dark:rgba(255,255,255,.12);--green:rgba(80,200,140,.18);--yellow:rgba(255,210,90,.16);--pink:rgba(255,120,160,.16);--hdr:rgba(11,13,24,.35);--b:#FF7AA8;--shadow:0 8px 32px rgba(0,0,0,.45);--glass-border:rgba(255,255,255,.16);--glass-hi:rgba(255,255,255,.22);--blob1:#3B4BFF;--blob2:#B0307A;--blob3:#0E9C8C}
+:is([data-theme=glass],[data-theme=glassdark]) body{background:transparent}
+:is([data-theme=glass],[data-theme=glassdark]){background:var(--bg)}
+:is([data-theme=glass],[data-theme=glassdark]) body::before{content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 35% at 15% 20%,var(--blob1) 0%,transparent 70%),radial-gradient(38% 32% at 85% 30%,var(--blob2) 0%,transparent 70%),radial-gradient(45% 40% at 50% 85%,var(--blob3) 0%,transparent 70%);
+  filter:blur(10px);opacity:1;animation:glassdrift 22s ease-in-out infinite alternate}
+@keyframes glassdrift{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(3%,-2%) rotate(6deg)}100%{transform:translate(-3%,2%) rotate(-5deg)}}
+:is([data-theme=glass],[data-theme=glassdark]) :is(.card,.item,.tile:not(.dark),.gcard,.stat,.res,.alert,.week-banner,.finder,.faq,.theme-card,.subseg button,.who button,.chip,.qa-ans,.qa-wait,.hint,.note-lock,.empty,.pet-q button span,.goal-em,.wk-col){
+  background:var(--card);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid var(--glass-border);box-shadow:var(--shadow),inset 0 1px 0 var(--glass-hi)}
+:is([data-theme=glass],[data-theme=glassdark]) .tile.dark,:is([data-theme=glass],[data-theme=glassdark]) .invite{background:var(--dark);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);border:1px solid var(--glass-border);box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.25);color:#fff}
+:is([data-theme=glass],[data-theme=glassdark]) header{-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid var(--glass-border)}
+:is([data-theme=glass],[data-theme=glassdark]) nav{background:var(--card);-webkit-backdrop-filter:blur(26px) saturate(200%);backdrop-filter:blur(26px) saturate(200%);border:1px solid var(--glass-border);box-shadow:0 12px 40px rgba(20,30,90,.18),inset 0 1px 0 var(--glass-hi);border-radius:30px}
+:is([data-theme=glass],[data-theme=glassdark]) nav button.on{background:var(--soft)}
+:is([data-theme=glass],[data-theme=glassdark]) nav .center .bub{background:linear-gradient(145deg,var(--tan),var(--b));border-color:transparent;box-shadow:0 8px 24px rgba(91,108,255,.45),inset 0 1px 0 rgba(255,255,255,.6)}
+:is([data-theme=glass],[data-theme=glassdark]) .sheet{background:var(--card);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border-top:1px solid var(--glass-border)}
+[data-theme=glass] .sheet{background:rgba(245,247,255,.78)}
+[data-theme=glassdark] .sheet{background:rgba(20,22,38,.82)}
+:is([data-theme=glass],[data-theme=glassdark]) .seg{background:var(--soft2);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--glass-border)}
+:is([data-theme=glass],[data-theme=glassdark]) .seg button.on{background:var(--card);box-shadow:inset 0 1px 0 var(--glass-hi),0 4px 12px rgba(0,0,0,.08)}
+:is([data-theme=glass],[data-theme=glassdark]) .btn:not(.ghost),:is([data-theme=glass],[data-theme=glassdark]) .fab{background:linear-gradient(145deg,var(--tan),color-mix(in srgb,var(--tan) 60%,var(--b)));box-shadow:0 6px 18px color-mix(in srgb,var(--tan) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.5);color:#fff}
+:is([data-theme=glass],[data-theme=glassdark]) .btn.ghost{background:var(--soft);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--glass-border);color:var(--tan-d)}
+:is([data-theme=glass],[data-theme=glassdark]) :is(input,textarea,select){background:var(--soft2)!important;border-color:var(--glass-border)!important;color:var(--ink)}
+:is([data-theme=glass],[data-theme=glassdark]) .progress{background:var(--soft2)}
+:is([data-theme=glass],[data-theme=glassdark]) .progress div{background:linear-gradient(90deg,var(--tan),var(--b))}
+:is([data-theme=glass],[data-theme=glassdark]) .couple .pic{box-shadow:0 0 0 2px var(--glass-border),0 8px 20px rgba(0,0,0,.12)}
+[data-theme=glassdark] .logo,[data-theme=glassdark] h1,[data-theme=glassdark] h2,[data-theme=glassdark] h3{color:var(--ink)}
+[data-theme=glassdark] input,[data-theme=glassdark] textarea,[data-theme=glassdark] select{color-scheme:dark}
+.sw.glass i:nth-child(1){background:linear-gradient(135deg,#9DB4FF,#FFB3D1)}.sw.glass i:nth-child(2){background:rgba(255,255,255,.7);border:1px solid #dde}.sw.glass i:nth-child(3){background:#5B6CFF}
+.sw.glassdark i:nth-child(1){background:linear-gradient(135deg,#3B4BFF,#B0307A)}.sw.glassdark i:nth-child(2){background:#1a1d30}.sw.glassdark i:nth-child(3){background:#8E9BFF}
+@media (prefers-reduced-motion: reduce){:is([data-theme=glass],[data-theme=glassdark]) body::before{animation:none}}
+[data-theme=glassdark] .gi,[data-theme=glassdark] .pet-q button span{filter:saturate(.9) brightness(.55)}
+[data-theme=glassdark] .gi .fe,[data-theme=glassdark] .gi .fe-fb{filter:brightness(1.8)}
