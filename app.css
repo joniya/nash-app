@@ -448,3 +448,10 @@ body.sheet-open nav,body.sheet-open::after,body.gated::after{display:none}
 [data-theme=glass] .sheet{background:rgba(246,248,255,.96)}
 [data-theme=glassdark] .sheet{background:rgba(20,22,38,.97)}
 .sheet{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+/* скло без мерехтіння: жодного живого розмиття над контентом, що прокручується */
+:is([data-theme=glass],[data-theme=glassdark]) :is(header,nav,nav::before,.overlay){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+:is([data-theme=glass],[data-theme=glassdark]) body::before{filter:none!important;transform:translateZ(0);will-change:transform}
+[data-theme=glass] header{background:#F2F4FC!important}
+[data-theme=glassdark] header{background:#0E101C!important}
+[data-theme=glass] nav::before{background:rgba(250,251,255,.98)!important}
+[data-theme=glassdark] nav::before{background:rgba(22,24,40,.98)!important}
