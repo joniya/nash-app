@@ -637,6 +637,7 @@ async function geocode(city) {
   return (geoCache[k] = { lat: +j[0].lat, lon: +j[0].lon, name: j[0].display_name.split(',').slice(0, 2).join(',') });
 }
 /* ---- місця з OpenStreetMap: легкий запит у квадраті ~5 км, кілька серверів паралельно — перемагає найшвидший ---- */
+let placesDiag = '';
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 function osmCacheGet(key) { try { const x = JSON.parse(localStorage.getItem('osm:' + key)); if (x && Date.now() - x.t < 3 * 864e5) return x.list; } catch (e) {} return null; }
 function osmCachePut(key, list) { try { localStorage.setItem('osm:' + key, JSON.stringify({ t: Date.now(), list })); } catch (e) {} }
@@ -649,6 +650,7 @@ async function osmPlaces(geo, cat) {
   const bbox = [geo.lat - dLat, geo.lon - dLon, geo.lat + dLat, geo.lon + dLon].map(x => x.toFixed(4)).join(',');
   const query = `[out:json][timeout:15][bbox:${bbox}];(${qs.map(q => q + '["name"];').join('')});out center qt 300;`;
   // спершу — через наш сервер (надійніше: Geoapify або Overpass з правильними заголовками)
+  placesDiag = '';
   if (ONLINE) {
     try {
       const r = await Promise.race([api('places', { lat: geo.lat, lon: geo.lon, cat }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 25000))]);
@@ -656,7 +658,8 @@ async function osmPlaces(geo, cat) {
         const list = toPlaces(r.list.map(x => ({ lat: x.lat, lon: x.lon, tags: x.tags })));
         if (list.length) { osmCachePut(key, list); return (osmCache[key] = list); }
       }
-    } catch (e) { /* пробуємо напряму */ }
+      placesDiag = 'сервер: ' + (r.error || 'порожньо') + (r.geoErr ? ', geoapify: ' + r.geoErr : '');
+    } catch (e) { placesDiag = 'сервер: ' + e.message; }
   }
   const ctrls = OVERPASS.map(() => new AbortController());
   const tryOne = async (url, i) => {
@@ -763,7 +766,7 @@ async function runFinder(random) {
   try { geo = await geocode(city); cands = await osmPlaces(geo, finderCat); }
   catch (e) {
     if (run !== finderRun) return; done();
-    out.innerHTML = `<div class="empty">${e.message === 'nocity' ? 'Не знайшов таке місто 🤔 Почніть вводити назву й оберіть зі списку.' : e.message === 'geo' ? 'Не вдалося знайти місто на карті — перевірте інтернет і спробуйте ще раз.' : 'Сервери карт зараз перевантажені. Спробуйте ще раз за хвилину.' + (inTG ? '' : '<br><small>У попередньому перегляді інтернет-запити заблоковані — це запрацює в Telegram.</small>')}</div><button class="btn ghost" style="width:100%" onclick="runFinder(${random})">↻ Спробувати ще раз</button>`;
+    out.innerHTML = `<div class="empty">${e.message === 'nocity' ? 'Не знайшов таке місто 🤔 Почніть вводити назву й оберіть зі списку.' : e.message === 'geo' ? 'Не вдалося знайти місто на карті — перевірте інтернет і спробуйте ще раз.' : 'Сервери карт зараз перевантажені. Спробуйте ще раз за хвилину.' + (placesDiag ? `<br><small style="opacity:.6">${esc(placesDiag)}</small>` : '') + (inTG ? '' : '<br><small>У попередньому перегляді інтернет-запити заблоковані — це запрацює в Telegram.</small>')}</div><button class="btn ghost" style="width:100%" onclick="runFinder(${random})">↻ Спробувати ще раз</button>`;
     return;
   }
   if (run !== finderRun) return;
