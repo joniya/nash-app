@@ -112,8 +112,8 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 /* ===== UI helpers ===== */
 function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2200); }
 const sheetOpen = () => document.getElementById('overlay').classList.contains('show');
-function openSheet(html) { const sh = document.getElementById('sheet'); sh.innerHTML = '<div class="grab"></div>' + html; sh.scrollTop = 0; document.getElementById('overlay').classList.add('show'); syncBack(); }
-function closeSheet() { document.getElementById('overlay').classList.remove('show'); syncBack(); if (typeof Sync !== 'undefined' && Sync.pendingRender) { Sync.pendingRender = false; render(); } }
+function openSheet(html) { const sh = document.getElementById('sheet'); sh.innerHTML = '<div class="grab"></div>' + html; sh.scrollTop = 0; document.getElementById('overlay').classList.add('show'); document.body.classList.add('sheet-open'); syncBack(); }
+function closeSheet() { document.getElementById('overlay').classList.remove('show'); document.body.classList.remove('sheet-open'); syncBack(); if (typeof Sync !== 'undefined' && Sync.pendingRender) { Sync.pendingRender = false; render(); } }
 function syncBack() { if (!tg) return; try { (sheetOpen() || SUB[tab]) ? tg.BackButton.show() : tg.BackButton.hide(); } catch (e) {} }
 
 /* fields: {k,l,type,v,ph,req,min,max,max_len,opts}
