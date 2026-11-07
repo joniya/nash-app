@@ -48,7 +48,7 @@ function avatarHTML(slot, cls) {
 }
 
 /* ---------- Теми оформлення (на кожному телефоні своя) ---------- */
-const THEMES = { autumn: '🍂 Осінь', winter: '❄️ Зима', spring: '🌸 Весна', night: '🌙 Ніч' };
+const THEMES = { autumn: '🍂 Осінь', lavender: '💜 Лаванда', winter: '❄️ Зима', spring: '🌸 Весна', night: '🌙 Ніч' };
 function getTheme() { try { return localStorage.getItem('theme') || (tg && tg.colorScheme === 'dark' ? 'night' : 'autumn'); } catch (e) { return 'autumn'; } }
 function applyTheme(t = getTheme()) {
   document.documentElement.dataset.theme = t;

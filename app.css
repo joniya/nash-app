@@ -304,3 +304,53 @@ html,body{transition:background .3s}
 .res-ph.photo{background-size:cover}
 .loading small{font-weight:600;color:var(--muted)}
 .ph-note{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.45);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px}
+.dist{font-size:13px;font-weight:800;color:var(--tan-d);white-space:nowrap}
+.res-ph.is-map{background-size:cover;background-position:center}
+
+/* ===== Вішлист: фото товару ===== */
+.thumb{width:64px;height:64px;border-radius:14px;background:var(--soft) center/cover no-repeat;flex-shrink:0;border:1px solid var(--line)}
+.chips-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pill.link{text-decoration:none;color:var(--tan-d)}
+
+/* ===== Tandem: логотип, вітальний екран ===== */
+.logo-img{width:34px;height:34px;object-fit:contain}
+.gate{position:fixed;inset:0;z-index:90;display:none;overflow-y:auto;background:linear-gradient(180deg,#F6EEFF 0%,#FBEFF6 55%,#FFF4F7 100%)}
+.gate.show{display:block}
+body.gated nav{display:none}
+.gate-in{max-width:420px;margin:0 auto;padding:40px 26px 36px;text-align:center;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:up .35s ease}
+.gate-art{width:78%;max-width:300px;filter:drop-shadow(0 18px 30px rgba(120,60,160,.18))}
+.gate-art.small{width:46%;max-width:180px}
+.gate-title{font-size:46px;font-weight:900;color:#5B2C83;margin:6px 0 0;letter-spacing:.5px}
+.gate-heart{color:#7B3FA8;font-weight:900;letter-spacing:2px;margin:2px 0 10px}
+.gate-h2{font-size:26px;font-weight:900;color:#5B2C83;margin:8px 0}
+.gate-sub{color:#5E4A6E;font-size:16px;line-height:1.45;margin:0 0 18px}
+.gate-list{list-style:none;padding:0;margin:0 0 24px;text-align:left;color:#4A3858;font-weight:700;font-size:15px;line-height:2}
+.gate-btn{width:100%;max-width:320px;padding:16px;border-radius:20px;background:#5B2C83;color:#fff;font-weight:900;font-size:17px;box-shadow:0 10px 24px rgba(91,44,131,.35);margin-bottom:10px}
+.gate-btn.ghost{background:#fff;color:#5B2C83;box-shadow:none;border:1.5px solid #D9C4EA}
+.gate-wait{display:flex;align-items:center;gap:8px;justify-content:center;color:#7B5F90;font-weight:700;font-size:14px;margin-top:10px}
+.gate-wait .dot{width:10px;height:10px;border-radius:50%;background:#7B3FA8;animation:pulse 1.2s infinite}
+.gate-note{color:#8C7A99;font-size:13px;margin-top:14px;line-height:1.4}
+[data-theme=lavender]{--bg:#F8F3FD;--card:#fff;--soft:#EEE3F8;--soft2:#F5EEFB;--tan:#7B3FA8;--tan-d:#5B2C83;--ink:#2A1F33;--ink2:#6B5A78;--muted:#A797B3;--line:#E8DDF2;--dark:#4A2470;--pink:#FDE6EE;--hdr:rgba(248,243,253,.92);--b:#E08AA8;--shadow:0 6px 24px rgba(91,44,131,.08)}
+.sw.lavender i:nth-child(1){background:#F8F3FD;border:1px solid #eee}.sw.lavender i:nth-child(2){background:#7B3FA8}.sw.lavender i:nth-child(3){background:#E08AA8}
+
+/* ===== Улюбленець ===== */
+.pet-w{position:relative}
+.pet-w-top{display:flex;gap:12px;align-items:center;cursor:pointer}
+.pet-ph{width:64px;height:64px;border-radius:50%;background:var(--soft) center/cover no-repeat;display:grid;place-items:center;font-size:30px;flex-shrink:0;border:3px solid var(--card);box-shadow:0 0 0 2px var(--tan);position:relative}
+.pet-ph.big{width:92px;height:92px;font-size:42px;cursor:pointer}
+.pet-ph .cam{position:absolute;right:-4px;bottom:-4px;width:30px;height:30px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.pet-name{display:block;font-weight:900;font-size:19px}
+.pet-w small,.pet-card small{color:var(--ink2);font-size:13.5px}
+.pet-card{display:flex;gap:14px;align-items:center}
+.pet-q{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
+.pet-q button{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--ink2);padding:4px 0;border-radius:14px}
+.pet-q button span{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:21px}
+.pet-q.big{margin:0 0 14px}
+.pet-q button.on{color:var(--tan-d);background:var(--soft2)}
+.pet-ev{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);position:relative}
+.pet-ev:last-child{border-bottom:0}
+.pet-ev .tx{flex:1;cursor:pointer}.pet-ev b{display:block;font-weight:800;font-size:15px}.pet-ev small{color:var(--ink2);font-size:12.5px}
+.pet-ev.new{box-shadow:0 0 0 2px var(--tan);border-radius:12px;padding-left:8px}
+.empty-w{display:flex;gap:12px;align-items:center}
+.empty-w b{display:block;font-weight:900}.empty-w small{color:var(--ink2);font-size:13px}
+.empty-w .x{position:absolute;top:8px;right:10px;color:var(--muted);font-size:14px}

@@ -65,7 +65,7 @@ function seed() {
     ],
     shop: [], tasks: [{ id: uid(), title: 'Прибирання на кухні (приклад)', date: '', done: false }],
     recipes: [{ id: uid(), title: 'Карбонара', desc: 'Спагеті, бекон, яйця, пармезан (приклад)' }],
-    wish: [], surprises: [], nudges: [], qa: {}, weekly: {}, about: { a: {}, b: {} }, photos: {}, onb: {}, qaLevel: 'mix', city: '', goals: [{ id: uid(), emoji: '🐷', title: 'Наша спільна мрія', target: 1000, log: [], done: false, created: Date.now() }]
+    wish: [], surprises: [], nudges: [], pets: [], petEvents: [], widgets: {}, qa: {}, weekly: {}, about: { a: {}, b: {} }, photos: {}, onb: {}, qaLevel: 'mix', city: '', goals: [{ id: uid(), emoji: '🐷', title: 'Наша спільна мрія', target: 1000, log: [], done: false, created: Date.now() }]
   };
 }
 function migrate(s) {
@@ -91,7 +91,7 @@ function migrate(s) {
   return s;
 }
 /* Сповіщення: кожен запис знає, хто його додав (by) і хто вже бачив (seen) */
-const LISTS = ['notes', 'shop', 'tasks', 'recipes', 'wish', 'places', 'events', 'dates', 'trips', 'surprises', 'nudges', 'goals'];
+const LISTS = ['notes', 'shop', 'tasks', 'recipes', 'wish', 'places', 'events', 'dates', 'trips', 'surprises', 'nudges', 'goals', 'pets', 'petEvents'];
 function stamp(s, who) { LISTS.forEach(l => (s[l] || []).forEach(o => { if (!o.seen) { o.by = o.by || who; o.seen = who === 'both' ? ['a', 'b'] : [who]; if (who === 'both') o.by = o.by === 'both' ? 'a' : o.by; } })); }
 let S;
 try { const raw = JSON.parse(localStorage.getItem(KEY)); S = migrate(raw || seed()); stamp(S, 'both'); } catch (e) { S = migrate(seed()); stamp(S, 'both'); }
@@ -162,7 +162,7 @@ function itemMenu(list, id, extra = [], onDelete) {
 }
 
 /* ===== Навігація ===== */
-const SUB = { dates: true, trips: true };
+const SUB = { dates: true, trips: true, pet: true };
 let shopKind = 'food', placeCat = '';
 let tab = 'us', prevTab = 'us', homeSeg = 'shop', placeSeg = 'spont', placeQ = '', recipeQ = '', wishSeg = 'gift', wishWho = null;
 function go(t) { if (SUB[t] && !SUB[tab]) prevTab = tab; if (t !== tab) justSeen.clear(); tab = t; render(); window.scrollTo(0, 0); }
@@ -203,6 +203,7 @@ function vUs() {
     <div class="nudge-hint">Натисни ❤️ — і ${esc(n[other()])} отримає твоє «думаю про тебе»</div>
   </div>
   ${onboardingHTML()}
+  ${petWidgetHTML()}
   ${memoriesHTML()}
   ${qaCardHTML()}
 
@@ -263,7 +264,7 @@ function vTrips() {
 function placeListHTML() {
   const q = placeQ.toLowerCase();
   const list = S.places.filter(p => p.kind === placeSeg && (!placeCat || (p.cat || '') === placeCat) && (!q || (p.title + ' ' + p.cat + ' ' + p.desc).toLowerCase().includes(q)));
-  return list.length ? list.map(p => `<div class="item ${p.visited ? 'done' : ''}${nw(p)}"><div class="ic">${p.visited ? '✅' : '📍'}</div><div class="tx"><div class="cat">${esc(p.cat)}</div><div class="tt">${esc(p.title)}</div><div class="ds">${/^https?:\/\//.test(p.desc || '') ? `<a href="${esc(p.desc)}" target="_blank" rel="noopener" onclick="return openLink(this.href)">${esc(p.desc.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40))}…</a>` : esc(p.desc)}</div></div>${byTag(p)}<button class="more" onclick="placeMenu('${p.id}')">⋯</button></div>`).join('')
+  return list.length ? list.map(p => `<div class="item ${p.visited ? 'done' : ''}${nw(p)}">${p.img ? `<div class="thumb" style="background-image:url('${esc(p.img).replace(/'/g, '%27')}')"></div>` : `<div class="ic">${p.visited ? '✅' : '📍'}</div>`}<div class="tx"><div class="cat">${esc(p.cat)}</div><div class="tt">${esc(p.title)}</div>${cleanDesc(p) ? `<div class="ds">${esc(cleanDesc(p))}</div>` : ''}${linkOf(p) ? `<div class="chips-row"><a class="pill link" href="${esc(linkOf(p))}" target="_blank" rel="noopener" onclick="return openLink(this.href)">${esc(siteOf(p))} ↗</a></div>` : ''}</div>${byTag(p)}<button class="more" onclick="placeMenu('${p.id}')">⋯</button></div>`).join('')
     : `<div class="empty">${BEAGLE}${q ? 'Нічого не знайдено.' : 'Тут поки порожньо — додайте перше місце.'}</div>`;
 }
 function vPlaces() {
@@ -321,7 +322,8 @@ function vWish() {
   const list = S.wish.filter(w => w.seg === wishSeg && (wishSeg !== 'gift' || w.owner === wishWho));
   const listHtml = list.length ? list.map(w => {
     const mine = w.owner === S.me, reservedByMe = w.reservedBy === S.me;
-    return `<div class="item ${w.done ? 'done' : ''}${nw(w)}"><div class="ic">${wishSeg === 'gift' ? '🎁' : wishSeg === 'watch' ? '🎬' : '✨'}</div><div class="tx"><div class="tt">${esc(w.title)}</div>${w.desc ? `<div class="ds">${esc(w.desc)}</div>` : ''}${!mine && reservedByMe ? `<span class="pill">🔒 Я готую цей подарунок</span>` : ''}</div>${wishSeg !== 'gift' ? byTag(w) : ''}<button class="more" onclick="wishMenu('${w.id}')">⋯</button></div>`;
+    const lk = linkOf(w), desc = cleanDesc(w);
+    return `<div class="item ${w.done ? 'done' : ''}${nw(w)}">${w.img ? `<div class="thumb" style="background-image:url('${esc(w.img).replace(/'/g, '%27')}')"></div>` : `<div class="ic">${w.loading ? '⏳' : wishSeg === 'gift' ? '🎁' : wishSeg === 'watch' ? '🎬' : '✨'}</div>`}<div class="tx"><div class="tt">${esc(w.title)}</div>${desc ? `<div class="ds">${esc(desc)}</div>` : ''}${w.price || lk ? `<div class="chips-row">${w.price ? `<span class="pill">💰 ${esc(w.price)}</span>` : ''}${lk ? `<a class="pill link" href="${esc(lk)}" target="_blank" rel="noopener" onclick="return openLink(this.href)">${esc(siteOf(w))} ↗</a>` : ''}</div>` : ''}${!mine && reservedByMe ? `<span class="pill">🔒 Я готую цей подарунок</span>` : ''}</div>${wishSeg !== 'gift' ? byTag(w) : ''}<button class="more" onclick="wishMenu('${w.id}')">⋯</button></div>`;
   }).join('') : `<div class="empty">${BEAGLE}${wishSeg === 'gift' && wishWho !== S.me ? esc(S.names[wishWho]) + ' ще нічого не додав(-ла).' : 'Поки порожньо — додай те, про що мрієш.'}</div>`;
   return `
   <div class="page-head"><div><h1>Наш вішлист</h1><p class="sub">Те, що хочеться отримати, побачити й прожити.</p></div><button class="fab" onclick="addWish()">+</button></div>
@@ -345,6 +347,7 @@ function vMore() {
     <button class="gcard" onclick="openAbout()"><div class="gi" style="background:#E6F4E1">${fe('Memo', '🗒')}</div><b>Шпаргалка</b><small>Розміри, смаки, дрібниці</small></button>
     <button class="gcard" onclick="openDeck()"><div class="gi" style="background:#FFF3CF">${fe('Speech balloon', '💬')}</div><b>Картки для розмови</b><small>${QBANK.length} питань, 3 рівні</small></button>
     <button class="gcard" onclick="openIdeas()"><div class="gi" style="background:#FFF0D6">${fe('Light bulb', '💡')}</div><b>Ідеї побачень</b><small>${IDEAS.length} ідей на будь-який вечір</small></button>
+    <button class="gcard" onclick="go('pet')"><div class="gi" style="background:#F1E3FF">${fe('Dog face', '🐶')}</div><b>Улюбленець${sb(unseen('petEvents'))}</b><small>${S.pets.length ? esc(S.pets.map(p => p.name).join(', ')) : 'Здоров’я, грумінг, корм'}</small></button>
     <button class="gcard" onclick="openQaHistory()"><div class="gi" style="background:#DCEEFF">${fe('Red question mark', '❓')}</div><b>Наші відповіді</b><small>Питання дня</small></button>
   </div>
 ${goalsHTML()}
@@ -711,47 +714,109 @@ function mapThumbHTML(lat, lon) {
 }
 const commonsURL = f => 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(f).replace(/^File:/i, '')) + '?width=640';
 async function loadPhotos(list, run) {
+  if (ONLINE) {
+    // через сервер: фото з Вікіданих / Commons, а де фото немає — гарна мінікарта
+    try {
+      const r = await api('photos', { items: list.map(p => ({ lat: p.lat, lon: p.lon, wikidata: p.wikidata, commons: p.commons, image: p.image })) });
+      (r.photos || []).forEach((u, i) => {
+        if (u) setPhoto(i, u.replace(/^near:/, ''), run, u.startsWith('near:'));
+        else if (r.map) setPhoto(i, CFG.API_URL + '?map=' + list[i].lat.toFixed(5) + ',' + list[i].lon.toFixed(5), run, false, true);
+      });
+      return;
+    } catch (e) { /* пробуємо напряму */ }
+  }
+  const has = new Set();
   list.forEach((p, i) => {
     let src = '';
     if (/^https:\/\/.+\.(jpe?g|png|webp)(\?.*)?$/i.test(p.image)) src = p.image;
     else if (/^File:/i.test(p.commons)) src = commonsURL(p.commons);
-    if (src) setPhoto(i, src, run);
+    if (src) { has.add(i); setPhoto(i, src, run); }
   });
-  const has = new Set();
-  list.forEach((p, i) => { if (/^https:\/\//.test(p.image) || /^File:/i.test(p.commons)) has.add(i); });
   const ids = [...new Set(list.filter((p, i) => !has.has(i) && /^Q\d+$/.test(p.wikidata)).map(p => p.wikidata))];
   if (ids.length) {
     try {
       const r = await fetchT(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.slice(0, 50).join('|')}&props=claims&format=json&origin=*`, {}, 8000);
       const j = await r.json();
-      list.forEach((p, i) => {
-        const f = j.entities?.[p.wikidata]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
-        if (f) { has.add(i); setPhoto(i, commonsURL(f), run); }
-      });
+      list.forEach((p, i) => { const f = j.entities?.[p.wikidata]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value; if (f) { has.add(i); setPhoto(i, commonsURL(f), run); } });
     } catch (e) {}
   }
-  // решта: фото, зроблені поруч із цим місцем (Wikimedia Commons)
   await Promise.all(list.map(async (p, i) => {
     if (has.has(i) || run !== finderRun) return;
     try {
-      const r = await fetchT(`https://commons.wikimedia.org/w/api.php?action=query&list=geosearch&gscoord=${p.lat}|${p.lon}&gsradius=80&gsnamespace=6&gslimit=5&format=json&origin=*`, {}, 7000);
+      const r = await fetchT(`https://commons.wikimedia.org/w/api.php?action=query&list=geosearch&gscoord=${p.lat}|${p.lon}&gsradius=100&gsnamespace=6&gslimit=6&format=json&origin=*`, {}, 7000);
       const j = await r.json();
       const f = (j.query?.geosearch || []).find(x => /\.(jpe?g|png|webp)$/i.test(x.title));
       if (f) setPhoto(i, commonsURL(f.title), run, true);
     } catch (e) {}
   }));
 }
-function setPhoto(i, src, run, near) {
+function setPhoto(i, src, run, near, isMap) {
   if (run !== finderRun) return;
   const box = document.getElementById('ph' + i); if (!box) return;
   const img = new Image();
-  img.onload = () => { if (run !== finderRun) return; box.innerHTML = near ? '<span class="ph-note">📷 фото поруч</span>' : ''; box.classList.add('photo'); box.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; };
+  img.onload = () => { if (run !== finderRun) return; box.innerHTML = near ? '<span class="ph-note">📷 фото поруч</span>' : ''; box.classList.add('photo'); box.classList.toggle('is-map', !!isMap); box.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; };
   img.src = src;
 }
+/* ---- відстань: від центру міста, від мене або від адреси ---- */
+function distKm(a, b) {
+  const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLon = (b.lon - a.lon) * Math.PI / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+const fmtDist = km => km < 1 ? Math.max(50, Math.round(km * 1000 / 50) * 50) + ' м' : (km < 10 ? km.toFixed(1).replace('.', ',') : Math.round(km)) + ' км';
+function getFrom() { try { return JSON.parse(localStorage.getItem('fromPt')) || { type: 'center' }; } catch (e) { return { type: 'center' }; } }
+function setFrom(f) { try { localStorage.setItem('fromPt', JSON.stringify(f)); } catch (e) {} renderFrom(); }
+function renderFrom() {
+  const el = document.getElementById('fFrom'); if (!el) return;
+  const f = getFrom();
+  el.innerHTML = `<div class="lbl" style="margin:0 0 6px">Відстань рахувати від</div><div class="chips" style="margin-bottom:6px">
+    <button class="chip ${f.type === 'center' ? 'on' : ''}" data-f="center">📍 Центр міста</button>
+    <button class="chip ${f.type === 'me' ? 'on' : ''}" data-f="me">🧭 Де я зараз</button>
+    <button class="chip ${f.type === 'addr' ? 'on' : ''}" data-f="addr">🏠 ${f.type === 'addr' && f.label ? esc(f.label.slice(0, 22)) : 'Адреса'}</button></div>
+    ${f.type === 'addr' && !f.lat ? `<div class="addline"><input id="fAddr" maxlength="100" placeholder="Вулиця, будинок" value="${esc(f.q || '')}"><button class="btn" id="fAddrOk">OK</button></div>` : ''}`;
+  el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => {
+    const t = b.dataset.f;
+    if (t === 'center') setFrom({ type: 'center' });
+    else if (t === 'me') locateMe();
+    else setFrom({ type: 'addr' });
+  });
+  const ok = document.getElementById('fAddrOk');
+  if (ok) {
+    const go = async () => {
+      const q = document.getElementById('fAddr').value.trim(); if (!q) return;
+      const city = (document.getElementById('fCity') || {}).value || S.city || '';
+      try {
+        const r = await fetchT('https://photon.komoot.io/api/?limit=1&q=' + encodeURIComponent(q + (city ? ', ' + city : '')), {}, 7000);
+        const f = ((await r.json()).features || [])[0];
+        if (!f) return toast('Адресу не знайдено 🤔');
+        const [lon, lat] = f.geometry.coordinates;
+        setFrom({ type: 'addr', q, label: q, lat, lon }); toast('Відстань рахую від: ' + q);
+      } catch (e) { toast('Не вдалося знайти адресу'); }
+    };
+    ok.onclick = go;
+    document.getElementById('fAddr').onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+}
+function locateMe() {
+  const done = (lat, lon) => { setFrom({ type: 'me', lat, lon }); toast('Відстань рахую від вас 🧭'); };
+  const fail = () => toast('Не вдалося визначити місце — дозвольте доступ до геолокації');
+  try {
+    const lm = tg && tg.LocationManager;
+    if (inTG && lm && tg.isVersionAtLeast('8.0')) {
+      const ask = () => lm.getLocation(loc => loc ? done(loc.latitude, loc.longitude) : (lm.isAccessGranted === false ? lm.openSettings() : fail()));
+      return lm.isInited ? ask() : lm.init(ask);
+    }
+  } catch (e) {}
+  if (navigator.geolocation) navigator.geolocation.getCurrentPosition(p => done(p.coords.latitude, p.coords.longitude), fail, { timeout: 10000 });
+  else fail();
+}
+function fromPoint(geo) { const f = getFrom(); return f.lat && f.type !== 'center' ? { lat: f.lat, lon: f.lon } : { lat: geo.lat, lon: geo.lon }; }
+
 function openFinder(random) {
   openSheet(`<h3>✨ Ідеї в місті</h3>
     <div class="field ac"><label>Місто</label><input id="fCity" maxlength="60" autocomplete="off" placeholder="Почніть вводити: Льв..." value="${esc(S.city)}"><div class="ac-list" id="fCityList"></div></div>
     <div class="chips" id="fCats">${Object.entries(CATS).map(([k, c]) => `<button class="chip ${k === finderCat ? 'on' : ''}" data-c="${k}">${c.l}</button>`).join('')}</div>
+    <div id="fFrom"></div>
     ${ONLINE ? `<div class="field"><label>Що хочеться? (AI підбере)</label><input id="fWish" maxlength="120" placeholder="Затишно й недорого, щоб поговорити..."></div>`
       : `<div class="hint">💡 Після підключення сервера AI підбиратиме місця під ваш настрій і пояснюватиме, чому туди варто піти.</div>`}
     <div class="acts" style="margin-bottom:14px"><button class="btn ghost" id="fRand">🎲 Випадкове</button><button class="btn" id="fGo">🔎 Шукати</button></div>
@@ -762,6 +827,7 @@ function openFinder(random) {
   const ci = document.getElementById('fCity');
   ci.oninput = () => { clearTimeout(cityTimer); cityTimer = setTimeout(() => citySuggest(ci.value), 300); };
   ci.onkeydown = e => { if (e.key === 'Enter') { document.getElementById('fCityList').innerHTML = ''; runFinder(false); } };
+  renderFrom();
   if (random && S.city) runFinder(true);
 }
 let finderRun = 0;
@@ -784,14 +850,15 @@ async function runFinder(random) {
   }
   if (run !== finderRun) return;
   const mine = new Set(S.places.map(p => p.title.toLowerCase()));
-  cands = shuffle(cands.filter(p => !mine.has(p.name.toLowerCase())));
+  const from = fromPoint(geo);
+  cands = shuffle(cands.filter(p => !mine.has(p.name.toLowerCase()))).map(p => ({ ...p, km: distKm(from, p) }));
   if (!cands.length) { done(); out.innerHTML = `<div class="empty">У цій категорії поруч нічого не знайшов. Спробуйте «✨ Усе».</div>`; return; }
   let res, aiNote = '';
   if (random) res = cands.slice(0, 1);
   else if (ONLINE) {
     out.innerHTML = `<div class="loading"><i>✨</i> AI обирає найкраще з ${cands.length} місць...<br><small>зазвичай 5–15 секунд</small></div>`;
     // місця з фото — першими в списку для AI
-    const ordered = [...cands.filter(p => p.wikidata || p.image || p.commons), ...cands.filter(p => !(p.wikidata || p.image || p.commons))];
+    const ordered = [...cands].sort((a, b) => a.km - b.km).map(p => ({ ...p, extra: [p.extra, '~' + fmtDist(p.km) + ' від нас'].filter(Boolean).join(' · ') }));
     try { res = await aiPick(ordered, geo.name, wish); }
     catch (e) {
       const why = { limit: 'ліміт AI на сьогодні вичерпано', timeout: 'AI думав надто довго', bad_key: 'ключ Gemini на сервері не підходить', no_key: 'на сервері немає ключа Gemini' }[e.message] || 'AI зараз не відповідає';
@@ -805,7 +872,7 @@ async function runFinder(random) {
   const gq = p => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + (p.addr ? ', ' + p.addr : '') + ', ' + city);
   out.innerHTML = (aiNote ? `<div class="hint">${aiNote}</div>` : '') + `<div class="lbl">📍 ${esc(geo.name)} · ${random ? 'жереб обрав' : 'знайдено ' + cands.length}</div>` +
     res.map((p, i) => `<div class="res"><div class="res-ph" id="ph${i}">${mapThumbHTML(p.lat, p.lon)}</div>
-      <div class="cat">${p.ic} ${esc(p.cat)}</div><div class="tt">${esc(p.name)}</div>${p.addr || p.extra ? `<div class="ds">${esc([p.addr, p.extra].filter(Boolean).join(' · '))}</div>` : ''}${p.why ? `<div class="why">✨ ${esc(p.why)}</div>` : ''}
+      <div class="cat">${p.ic} ${esc(p.cat)}</div><div class="tt">${esc(p.name)}${isFinite(p.km) ? ` <span class="dist">(${fmtDist(p.km)})</span>` : ''}</div>${(() => { const ex = (p.extra || '').replace(/(^| · )~[^·]+ від нас$/, ''); return p.addr || ex ? `<div class="ds">${esc([p.addr, ex].filter(Boolean).join(' · '))}</div>` : ''; })()}${p.why ? `<div class="why">✨ ${esc(p.why)}</div>` : ''}
       <div class="rb"><button class="btn sm" id="fa${i}" onclick="addFound(${i})">+ До наших</button><a class="btn ghost sm" style="text-decoration:none" href="${gq(p)}" target="_blank" rel="noopener" onclick="return openLink(this.href)">📷 Фото й відгуки</a></div></div>`).join('') +
     (random ? `<button class="btn ghost" style="width:100%" onclick="runFinder(true)">🎲 Ще раз</button>` : '') +
     `<p class="sub" style="text-align:center;font-size:11.5px;margin-top:10px">Дані й карти: © учасники OpenStreetMap · фото: Wikimedia Commons</p>`;
@@ -857,12 +924,43 @@ function recipeMenu(id) { const r = S.recipes.find(x => x.id === id); itemMenu('
 function randomRecipe() { if (!S.recipes.length) return toast('Додайте рецепти'); const r = pick(S.recipes); openSheet(`<h3>Сьогодні готуємо 🍳</h3><div class="reveal"><div class="big">${esc(r.title)}</div><div class="sub" style="margin:0">${esc(r.desc)}</div></div><div class="acts" style="margin-top:14px"><button class="btn ghost" onclick="randomRecipe()">Інше</button><button class="btn" onclick="closeSheet()">Готуємо!</button></div>`); }
 
 /* ===== Вішлист ===== */
+/* посилання в записі: окреме поле url або перше посилання з опису (старі записи) */
+const URL_RE = /https?:\/\/[^\s<>"']+/i;
+const linkOf = o => o.url || ((o.desc || '').match(URL_RE) || [])[0] || '';
+const cleanDesc = o => (o.desc || '').replace(URL_RE, '').replace(/\s{2,}/g, ' ').trim();
+function siteOf(o) { if (o.site) return o.site; try { return new URL(linkOf(o)).hostname.replace(/^www\./, ''); } catch (e) { return 'посилання'; } }
+async function fetchPreview(item) {
+  const url = linkOf(item); if (!url || !ONLINE) return;
+  item.loading = true; render();
+  try {
+    const r = await Promise.race([api('preview', { url }), new Promise((_, rej) => setTimeout(() => rej(new Error('t')), 12000))]);
+    const x = S.wish.find(o => o.id === item.id) || S.places.find(o => o.id === item.id) || item;
+    if (r.image) x.img = r.image;
+    if (r.price && !x.price) x.price = r.price;
+    if (r.site) x.site = r.site;
+    if (r.title && (!x.title || x.title === x.site || x.autoTitle)) { x.title = r.title.slice(0, 100); delete x.autoTitle; }
+    delete x.loading; save(); render();
+    if (!r.image && !r.title) toast('Магазин не віддав фото — додано лише посилання');
+  } catch (e) { const x = S.wish.find(o => o.id === item.id) || item; delete x.loading; save(); render(); }
+}
 function addWish(w) {
   const seg = w ? w.seg : wishSeg;
   const t = { gift: 'Хочу в подарунок', watch: 'Хочу подивитися', dream: 'Наша мрія' }[seg];
-  formSheet(w ? 'Редагувати' : t, [{ k: 'title', l: 'Що саме', v: w?.title }, { k: 'desc', l: 'Деталі / посилання', type: 'textarea', v: w?.desc, req: false }], v => {
-    if (w) Object.assign(w, v);
-    else { S.wish.push({ id: uid(), seg, owner: S.me, title: v.title, desc: v.desc, done: false, reservedBy: null }); if (seg === 'gift') wishWho = S.me; }
+  formSheet(w ? 'Редагувати' : t, [
+    { k: 'url', l: '🔗 Посилання на товар (необов’язково)', v: w ? linkOf(w) : '', ph: 'https://…', req: false, maxlen: 800 },
+    { k: 'title', l: 'Що саме' + (w ? '' : ' (можна не писати — візьму з посилання)'), v: w?.title, req: false },
+    { k: 'desc', l: 'Деталі: розмір, колір…', type: 'textarea', v: w ? cleanDesc(w) : '', req: false }
+  ], v => {
+    const url = (v.url.match(URL_RE) || [])[0] || '';
+    if (v.url && !url) return 'Посилання має починатися з https://';
+    if (!v.title && !url) return 'Напишіть, що саме, або вставте посилання';
+    let site = ''; try { site = url ? new URL(url).hostname.replace(/^www\./, '') : ''; } catch (e) {}
+    const changedUrl = w ? url !== linkOf(w) : !!url;
+    const o = { title: v.title || site || 'Посилання', desc: v.desc, url, site, autoTitle: !v.title };
+    let item;
+    if (w) { Object.assign(w, o); if (changedUrl) { delete w.img; delete w.price; } item = w; }
+    else { item = { id: uid(), seg, owner: S.me, done: false, reservedBy: null, ...o }; S.wish.push(item); if (seg === 'gift') wishWho = S.me; }
+    if (url && changedUrl) setTimeout(() => fetchPreview(item), 50);
   });
 }
 function wishMenu(id) {
@@ -959,7 +1057,8 @@ function openCalendar() {
   const items = [
     ...S.events.map(e => ({ d: ymd(nextOccurrence(e.date, e.yearly)), t: (e.emoji || '🎉') + ' ' + e.title })),
     ...S.tasks.filter(t => t.date && !t.done).map(t => ({ d: t.date, t: '🔁 ' + t.title })),
-    ...S.trips.filter(t => t.date).map(t => ({ d: t.date, t: '🧳 ' + (t.title || 'Поїздка') }))
+    ...S.trips.filter(t => t.date).map(t => ({ d: t.date, t: '🧳 ' + (t.title || 'Поїздка') })),
+    ...S.petEvents.filter(e => e.date && !e.done).map(e => ({ d: e.date, t: '🐾 ' + ((S.pets.find(p => p.id === e.petId) || {}).name || '') + ': ' + e.title + (e.time ? ' · ' + e.time : '') }))
   ].filter(x => x.d >= t0).sort((a, b) => a.d.localeCompare(b.d));
   openSheet(`<h3>Календар 📅</h3>${items.length ? `<div class="card" style="padding:4px 16px">${items.map(x => `<div class="row"><div class="tx"><b>${esc(x.t)}</b><small>${fmtS(x.d)}</small></div><span class="pill">${x.d === t0 ? 'сьогодні' : 'через ' + daysBetween(t0, x.d) + ' дн.'}</span></div>`).join('')}</div>` : '<div class="empty">Подій поки немає. Додайте важливі дати на головній, справи з датою або заплановані поїздки.</div>'}<button class="btn" style="width:100%;margin-top:12px" onclick="closeSheet()">Закрити</button>`);
 }
@@ -969,18 +1068,18 @@ function checkin() {
 }
 function openSettings() {
   formSheet('Налаштування', [
-    { k: 'appName', l: 'Назва додатка', v: S.appName, maxlen: 24 }, { k: 'city', l: 'Ваше місто (для підбору місць)', v: S.city, maxlen: 40, req: false },  { k: 'a', l: 'Ім’я першого', v: S.names.a, maxlen: 20, req: true }, { k: 'b', l: 'Ім’я другої', v: S.names.b, maxlen: 20, req: true },
+    { k: 'city', l: 'Ваше місто (для підбору місць)', v: S.city, maxlen: 40, req: false },  { k: 'a', l: 'Ім’я першого', v: S.names.a, maxlen: 20, req: true }, { k: 'b', l: 'Ім’я другої', v: S.names.b, maxlen: 20, req: true },
     ...(ONLINE ? [] : [{ k: 'me', l: 'Хто зараз користується (для тесту)', type: 'select', v: S.me, opts: [['a', S.names.a], ['b', S.names.b]] }])
-  ], v => { S.appName = v.appName || 'Назва'; S.city = v.city; S.names.a = v.a; S.names.b = v.b; if (!ONLINE) S.me = v.me; wishWho = null; });
+  ], v => { S.city = v.city; S.names.a = v.a; S.names.b = v.b; if (!ONLINE) S.me = v.me; wishWho = null; });
   if (ONLINE) return;
   document.querySelector('#sheet .acts').insertAdjacentHTML('afterend', '<button class="btn ghost" style="width:100%;margin-top:10px;color:#D9645A" id="resetBtn">Скинути всі дані</button>');
   document.getElementById('resetBtn').onclick = () => confirmSheet('Скинути всі дані? Це не можна скасувати.', 'Скинути', () => { S = migrate(seed()); stamp(S, 'both'); justSeen.clear(); wishWho = null; tab = 'us'; toast('Дані скинуто'); });
 }
 
 /* ===== Рендер ===== */
-const VIEWS = { us: vUs, places: vPlaces, home: vHome, wish: vWish, more: vMore, dates: vDates, trips: vTrips };
+const VIEWS = { us: vUs, places: vPlaces, home: vHome, wish: vWish, more: vMore, dates: vDates, trips: vTrips, pet: () => vPet() };
 function render() {
-  document.getElementById('logo').innerHTML = BEAGLE + esc(S.appName);
+  document.getElementById('logo').innerHTML = '<img src="img/icon.webp" alt="" class="logo-img">' + APP_NAME;
   document.getElementById('hdrAvs').innerHTML = avatarHTML('a', 'av a') + avatarHTML('b', 'av b');
   seenDirty = false;
   // зберігаємо набраний текст і фокус, якщо екран оновився (напр. партнер щось змінив)

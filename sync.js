@@ -55,7 +55,7 @@ function mergeList(b, l, r) {
 }
 
 /* ---- що нового я додав — для сповіщення партнеру в Telegram ---- */
-const EVENT_OF = { notes: 'note', surprises: 'surprise', shop: 'shop', tasks: 'tasks', wish: 'wish', places: 'places', recipes: 'recipes', events: 'events', dates: 'dates', trips: 'trips' };
+const EVENT_OF = { notes: 'note', surprises: 'surprise', shop: 'shop', tasks: 'tasks', wish: 'wish', places: 'places', recipes: 'recipes', events: 'events', dates: 'dates', trips: 'trips', petEvents: 'pet' };
 function diffEvents(base, st) {
   const ev = [], me = S.me, oth = me === 'a' ? 'b' : 'a';
   base = base || {};
@@ -129,6 +129,7 @@ async function pull() {
     if (Sync.pushing || Sync.dirty) return; // поки чекали — з'явились локальні зміни; підтягнемо при наступному запиті
     Sync.version = r.version; Sync.base = clone(r.state); if (r.members) Sync.members = r.members;
     applyState(clone(r.state)); setStatus('ok');
+    if (document.body.classList.contains('gated') && partnerJoined()) { checkGate(); celebrate(); }
   } catch (e) { setStatus('offline', e.message); }
 }
 async function startSync() {
@@ -150,7 +151,7 @@ async function startSync() {
     Sync.ready = true;
     save(); // запише локально і (якщо є різниця) відправить
     if (remoteEmpty) { Sync.dirty = true; push(); }
-    setStatus('ok'); render();
+    setStatus('ok'); render(); checkGate();
     if (r.joined) { toast('Ви тепер разом у додатку 💛'); celebrate(); }
     try { if (u && !u.allows_write_to_pm && tg.requestWriteAccess) tg.requestWriteAccess(); } catch (e) {}
   } catch (e) {
@@ -177,4 +178,5 @@ function copyText(t) {
 /* ===== Запуск ===== */
 applyTheme();
 render();
+checkGate();
 startSync();
