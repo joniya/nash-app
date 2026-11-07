@@ -648,6 +648,16 @@ async function osmPlaces(geo, cat) {
   const dLat = 0.045, dLon = 0.045 / Math.cos(geo.lat * Math.PI / 180);
   const bbox = [geo.lat - dLat, geo.lon - dLon, geo.lat + dLat, geo.lon + dLon].map(x => x.toFixed(4)).join(',');
   const query = `[out:json][timeout:15][bbox:${bbox}];(${qs.map(q => q + '["name"];').join('')});out center qt 300;`;
+  // спершу — через наш сервер (надійніше: Geoapify або Overpass з правильними заголовками)
+  if (ONLINE) {
+    try {
+      const r = await Promise.race([api('places', { lat: geo.lat, lon: geo.lon, cat }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 25000))]);
+      if (r && Array.isArray(r.list) && r.list.length) {
+        const list = toPlaces(r.list.map(x => ({ lat: x.lat, lon: x.lon, tags: x.tags })));
+        if (list.length) { osmCachePut(key, list); return (osmCache[key] = list); }
+      }
+    } catch (e) { /* пробуємо напряму */ }
+  }
   const ctrls = OVERPASS.map(() => new AbortController());
   const tryOne = async (url, i) => {
     const t = setTimeout(() => ctrls[i].abort(), 18000);
@@ -664,15 +674,18 @@ async function osmPlaces(geo, cat) {
     j = await Promise.any(OVERPASS.map((u, i) => new Promise(res => setTimeout(res, i * 600)).then(() => tryOne(u, i))));
   } catch (e) { throw new Error('osm'); }
   finally { ctrls.forEach(c => { try { c.abort(); } catch (e) {} }); }
+  const list = toPlaces((j.elements || []).map(e => ({ lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon, tags: e.tags || {} })));
+  if (list.length) osmCachePut(key, list);
+  return (osmCache[key] = list);
+}
+function toPlaces(items) {
   const seen = new Set();
-  const list = (j.elements || []).map(e => {
-    const t = e.tags || {}, [cl, ic] = TAGCAT(t), lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
+  return items.map(e => {
+    const t = e.tags || {}, [cl, ic] = TAGCAT(t), lat = e.lat, lon = e.lon;
     const addr = [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(', ');
     const extra = [t.cuisine && 'кухня: ' + t.cuisine.replace(/;/g, ', '), t.opening_hours && 'години: ' + t.opening_hours, t.description].filter(Boolean).join(' · ');
     return { name: t['name:uk'] || t.name, cat: cl, ic, addr, extra, lat, lon, web: t.website || t['contact:website'] || '', wikidata: t.wikidata || '', commons: t.wikimedia_commons || '', image: t.image || '' };
   }).filter(p => p.name && p.lat && !seen.has(p.name.toLowerCase()) && seen.add(p.name.toLowerCase()));
-  if (list.length) osmCachePut(key, list);
-  return (osmCache[key] = list);
 }
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 async function aiPick(cands, city, wish) {
