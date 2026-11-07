@@ -455,3 +455,5 @@ body.sheet-open nav,body.sheet-open::after,body.gated::after{display:none}
 [data-theme=glassdark] header{background:#0E101C!important}
 [data-theme=glass] nav::before{background:rgba(250,251,255,.98)!important}
 [data-theme=glassdark] nav::before{background:rgba(22,24,40,.98)!important}
+.thumb.tall{height:88px;width:62px}
+.poster{width:78px;height:112px;flex-shrink:0;border-radius:12px;background:var(--soft) center/cover no-repeat;display:grid;place-items:center;font-size:26px;border:1px solid var(--line)}

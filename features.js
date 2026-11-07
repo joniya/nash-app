@@ -423,6 +423,36 @@ function openBackup() {
 const MOVIE_GENRES = ['Будь-який', 'Комедія', 'Романтика', 'Драма', 'Трилер', 'Детектив', 'Фантастика', 'Фентезі', 'Жахи', 'Пригоди', 'Бойовик', 'Анімація', 'Документальний', 'Біографія', 'Мюзикл', 'Кримінал', 'Історичний', 'Сімейний'];
 let movieQ = { kind: 'movie', genre: 'Будь-який', from: '', to: '' }, movieSeen = [];
 const trailerUrl = m => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`${m.original || m.title} ${m.year || ''} official trailer`.replace(/\s+/g, ' ').trim());
+/* постер із Вікіпедії (без ключів; CORS дозволено через origin=*) */
+const posterCache = {};
+async function wikiPoster(lang, q) {
+  const u = `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=1&gsrsearch=${encodeURIComponent(q)}&prop=pageimages&piprop=thumbnail&pithumbsize=500&pilicense=any`;
+  const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 7000);
+  try {
+    const j = await (await fetch(u, { signal: ctrl.signal })).json();
+    const pg = Object.values(j?.query?.pages || {})[0];
+    return pg?.thumbnail?.source || '';
+  } catch (e) { return ''; } finally { clearTimeout(t); }
+}
+async function moviePoster(m, kind) {
+  const key = (m.original || m.title) + '|' + (m.year || '');
+  if (key in posterCache) return posterCache[key];
+  const word = kind === 'series' ? 'TV series' : 'film';
+  let img = '';
+  if (m.original) img = await wikiPoster('en', `${m.original} ${m.year || ''} ${word}`);
+  if (!img && m.title) img = await wikiPoster('uk', `${m.title} ${m.year || ''} ${kind === 'series' ? 'серіал' : 'фільм'}`);
+  if (!img && m.title) img = await wikiPoster('en', `${m.title} ${m.year || ''} ${word}`);
+  return (posterCache[key] = img);
+}
+/* для фільмів, доданих вручну у «Подивитися» */
+async function fillPoster(item) {
+  if (!item || item.img || item.seg !== 'watch') return;
+  const ym = (item.title || '').match(/\((\d{4})\)\s*$/);
+  const title = (item.title || '').replace(/\(\d{4}\)\s*$/, '').trim(); if (!title) return;
+  const series = /серіал|series/i.test(item.desc || '');
+  const img = await moviePoster({ title, original: '', year: ym ? ym[1] : '' }, series ? 'series' : 'movie');
+  if (img && !item.img) { item.img = img; save(); render(); }
+}
 function openMoviePicker() {
   const y = new Date().getFullYear();
   const yearOpts = [['', 'будь-який'], ...Array.from({ length: y - 1949 }, (_, i) => String(y - i)).map(v => [v, v])];
@@ -462,22 +492,30 @@ async function findMovies(more) {
   movieSeen.push(...r.list.map(m => m.original || m.title));
   window._mv = r.list;
   box.innerHTML = `<div class="lbl" style="margin-top:16px">Наші варіанти</div>` + r.list.map((m, i) => `
-    <div class="card" style="padding:14px 16px;margin-bottom:10px">
+    <div class="card" style="padding:14px 16px;margin-bottom:10px;display:flex;gap:14px">
+      <div class="poster" id="mvP${i}">🎬</div><div style="flex:1;min-width:0">
       <b style="font-size:16.5px">${esc(m.title)}${m.year ? ` <span style="color:var(--muted);font-weight:700">(${m.year})</span>` : ''}</b>
       ${m.original && m.original !== m.title ? `<div class="ds" style="color:var(--muted)">${esc(m.original)}</div>` : ''}
       ${m.why ? `<div class="ds" style="margin-top:4px">${esc(m.why)}</div>` : ''}
       <div class="chips-row" style="margin-top:8px">${m.rating ? `<span class="pill">⭐ ${esc(m.rating)}</span>` : ''}
         <a class="pill link" href="${esc(trailerUrl(m))}" target="_blank" rel="noopener" onclick="return openLink(this.href)">▶️ Трейлер</a>
         <button class="pill" id="mvAdd${i}" onclick="addMovie(${i})">＋ У «Подивитися»</button></div>
-    </div>`).join('') + `<button class="btn ghost" style="width:100%" onclick="findMovies(true)">🔄 Інші 3 варіанти</button>`;
+    </div></div>`).join('') + `<button class="btn ghost" style="width:100%" onclick="findMovies(true)">🔄 Інші 3 варіанти</button>`;
   haptic('medium');
   setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  const kind = movieQ.kind;
+  r.list.forEach(async (m, i) => {
+    const img = await moviePoster(m, kind); m.img = img;
+    const el = document.getElementById('mvP' + i);
+    if (el && img && window._mv === r.list) { el.style.backgroundImage = `url('${img.replace(/'/g, '%27')}')`; el.textContent = ''; }
+  });
 }
 function addMovie(i) {
   const m = (window._mv || [])[i]; if (!m) return;
   const title = m.title + (m.year ? ` (${m.year})` : '');
   if (S.wish.some(w => w.seg === 'watch' && w.title === title)) return toast('Вже є у списку');
-  S.wish.unshift({ id: uid(), seg: 'watch', title, desc: [movieQ.kind === 'series' ? '📺 Серіал' : '🎬 Фільм', movieQ.genre !== 'Будь-який' ? movieQ.genre.toLowerCase() : '', m.rating ? '⭐ ' + m.rating : '', m.why].filter(Boolean).join(' · '), url: trailerUrl(m), site: '▶️ Трейлер', done: false });
+  S.wish.unshift({ id: uid(), seg: 'watch', title, desc: [movieQ.kind === 'series' ? '📺 Серіал' : '🎬 Фільм', movieQ.genre !== 'Будь-який' ? movieQ.genre.toLowerCase() : '', m.rating ? '⭐ ' + m.rating : '', m.why].filter(Boolean).join(' · '), url: trailerUrl(m), site: '▶️ Трейлер', img: m.img || '', done: false });
+  if (!m.img) { const it = S.wish[0]; moviePoster(m, movieQ.kind).then(img => { if (img && !it.img) { it.img = img; save(); render(); } }); }
   save(); haptic('medium'); toast('Додано у «Подивитися» 🎬');
   const b = document.getElementById('mvAdd' + i); if (b) { b.textContent = '✅ Додано'; b.disabled = true; }
   if (typeof Sync !== 'undefined') Sync.pendingRender = true;

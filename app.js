@@ -325,7 +325,7 @@ function vWish() {
   const listHtml = list.length ? list.map(w => {
     const mine = w.owner === S.me, reservedByMe = w.reservedBy === S.me;
     const lk = linkOf(w), desc = cleanDesc(w);
-    return `<div class="item ${w.done ? 'done' : ''}${nw(w)}">${w.img ? `<div class="thumb" style="background-image:url('${esc(w.img).replace(/'/g, '%27')}')"></div>` : `<div class="ic">${w.loading ? '⏳' : wishSeg === 'gift' ? '🎁' : wishSeg === 'watch' ? '🎬' : '✨'}</div>`}<div class="tx"><div class="tt">${esc(w.title)}</div>${desc ? `<div class="ds">${esc(desc)}</div>` : ''}${w.price || lk ? `<div class="chips-row">${w.price ? `<span class="pill">💰 ${esc(w.price)}</span>` : ''}${lk ? `<a class="pill link" href="${esc(lk)}" target="_blank" rel="noopener" onclick="return openLink(this.href)">${esc(siteOf(w))} ↗</a>` : ''}</div>` : ''}${!mine && reservedByMe ? `<span class="pill">🔒 Я готую цей подарунок</span>` : ''}</div>${wishSeg !== 'gift' ? byTag(w) : ''}<button class="more" onclick="wishMenu('${w.id}')">⋯</button></div>`;
+    return `<div class="item ${w.done ? 'done' : ''}${nw(w)}">${w.img ? `<div class="thumb${w.seg === 'watch' ? ' tall' : ''}" style="background-image:url('${esc(w.img).replace(/'/g, '%27')}')"></div>` : `<div class="ic">${w.loading ? '⏳' : wishSeg === 'gift' ? '🎁' : wishSeg === 'watch' ? '🎬' : '✨'}</div>`}<div class="tx"><div class="tt">${esc(w.title)}</div>${desc ? `<div class="ds">${esc(desc)}</div>` : ''}${w.price || lk ? `<div class="chips-row">${w.price ? `<span class="pill">💰 ${esc(w.price)}</span>` : ''}${lk ? `<a class="pill link" href="${esc(lk)}" target="_blank" rel="noopener" onclick="return openLink(this.href)">${esc(siteOf(w))} ↗</a>` : ''}</div>` : ''}${!mine && reservedByMe ? `<span class="pill">🔒 Я готую цей подарунок</span>` : ''}</div>${wishSeg !== 'gift' ? byTag(w) : ''}<button class="more" onclick="wishMenu('${w.id}')">⋯</button></div>`;
   }).join('') : `<div class="empty">${BEAGLE}${wishSeg === 'gift' && wishWho !== S.me ? esc(S.names[wishWho]) + ' ще нічого не додав(-ла).' : 'Поки порожньо — додай те, про що мрієш.'}</div>`;
   return `
   <div class="page-head"><div><h1>Наш вішлист</h1><p class="sub">Те, що хочеться отримати, побачити й прожити.</p></div><button class="fab" onclick="addWish()">+</button></div>
@@ -968,6 +968,7 @@ function addWish(w) {
     if (w) { Object.assign(w, o); if (changedUrl) { delete w.img; delete w.price; } item = w; }
     else { item = { id: uid(), seg, owner: S.me, done: false, reservedBy: null, ...o }; S.wish.push(item); if (seg === 'gift') wishWho = S.me; }
     if (url && changedUrl) setTimeout(() => fetchPreview(item), 50);
+    else if (seg === 'watch' && !item.img) setTimeout(() => fillPoster(item), 50);
   });
 }
 function wishMenu(id) {
