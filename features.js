@@ -378,3 +378,43 @@ function openBackup() {
     rd.readAsText(f);
   };
 }
+
+/* ---------- Сховати клавіатуру (в Telegram на iPhone немає кнопки «Готово») ---------- */
+(function kbHelper() {
+  const isField = el => el && ((el.tagName === 'INPUT' && !/^(checkbox|radio|file|button|submit|range|color)$/.test(el.type)) || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  const btn = document.createElement('button');
+  btn.id = 'kbHide'; btn.type = 'button'; btn.setAttribute('aria-label', 'Сховати клавіатуру');
+  btn.innerHTML = '⌄ Готово';
+  document.body.appendChild(btn);
+  const hide = () => {
+    const a = document.activeElement; if (isField(a)) a.blur();
+    try { tg && tg.hideKeyboard && tg.hideKeyboard(); } catch (e) {}
+    btn.classList.remove('show'); document.body.classList.remove('kb');
+  };
+  btn.addEventListener('pointerdown', e => { e.preventDefault(); hide(); haptic(); });
+  btn.addEventListener('click', e => e.preventDefault());
+  const place = () => {
+    const vv = window.visualViewport;
+    const bottom = vv ? Math.max(8, window.innerHeight - (vv.offsetTop + vv.height) + 8) : 8;
+    btn.style.bottom = bottom + 'px';
+  };
+  let t;
+  const touch = () => matchMedia('(pointer:coarse)').matches;
+  document.addEventListener('focusin', e => { if (!isField(e.target) || !touch()) return; clearTimeout(t); place(); btn.classList.add('show'); document.body.classList.add('kb'); });
+  document.addEventListener('focusout', () => { clearTimeout(t); t = setTimeout(() => { if (!isField(document.activeElement)) { btn.classList.remove('show'); document.body.classList.remove('kb'); } }, 120); });
+  if (window.visualViewport) { visualViewport.addEventListener('resize', place); visualViewport.addEventListener('scroll', place); }
+  // тап поза полем — ховає клавіатуру
+  document.addEventListener('pointerdown', e => {
+    const a = document.activeElement; if (!isField(a)) return;
+    if (isField(e.target) || e.target.closest('button,label,select,a,.ac-list,#kbHide')) return;
+    a.blur();
+  }, true);
+  // Enter в однорядковому полі без власної дії — теж ховає
+  document.addEventListener('keydown', e => {
+    const a = e.target;
+    if (e.key === 'Enter' && a.tagName === 'INPUT' && !a.getAttribute('onkeydown')) { setTimeout(() => { if (document.activeElement === a) a.blur(); }, 0); }
+  });
+  // підказка клавіатурі показати «Готово» замість «Return»
+  new MutationObserver(() => document.querySelectorAll('input:not([enterkeyhint])').forEach(i => i.setAttribute('enterkeyhint', i.getAttribute('onkeydown') ? 'send' : 'done')))
+    .observe(document.body, { childList: true, subtree: true });
+})();

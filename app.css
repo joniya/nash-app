@@ -433,3 +433,6 @@ button{-webkit-tap-highlight-color:transparent;transition:transform .12s ease,fi
 button:not(:disabled):active{filter:brightness(.92)}
 :is(.btn,.gate-btn,.gcard,.chip,.row,.pet-q button,.stat button,.tile,.add-chip,.fab):not(:disabled):active{transform:scale(.96)}
 .gate-btn.copied,.btn.copied{background:#3BA55C!important;color:#fff!important;border-color:#3BA55C!important}
+#kbHide{position:fixed;right:12px;bottom:8px;z-index:210;display:none;padding:9px 16px;border-radius:999px;background:var(--dark);color:#fff;font-weight:800;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+#kbHide.show{display:block}
+body.kb nav{display:none}
