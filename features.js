@@ -418,3 +418,67 @@ function openBackup() {
   new MutationObserver(() => document.querySelectorAll('input:not([enterkeyhint])').forEach(i => i.setAttribute('enterkeyhint', i.getAttribute('onkeydown') ? 'send' : 'done')))
     .observe(document.body, { childList: true, subtree: true });
 })();
+
+/* ---------- Кіно: 3 найкращі фільми чи серіали від ШІ ---------- */
+const MOVIE_GENRES = ['Будь-який', 'Комедія', 'Романтика', 'Драма', 'Трилер', 'Детектив', 'Фантастика', 'Фентезі', 'Жахи', 'Пригоди', 'Бойовик', 'Анімація', 'Документальний', 'Біографія', 'Мюзикл', 'Кримінал', 'Історичний', 'Сімейний'];
+let movieQ = { kind: 'movie', genre: 'Будь-який', from: '', to: '' }, movieSeen = [];
+const trailerUrl = m => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`${m.original || m.title} ${m.year || ''} official trailer`.replace(/\s+/g, ' ').trim());
+function openMoviePicker() {
+  const y = new Date().getFullYear();
+  const yearOpts = [['', 'будь-який'], ...Array.from({ length: y - 1949 }, (_, i) => String(y - i)).map(v => [v, v])];
+  const sel = (id, opts, v) => `<select id="${id}">${opts.map(([k, l]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  openSheet(`<h3>Що подивитися? 🍿</h3><p class="sub">ШІ підбере 3 найкращі варіанти під ваш настрій.</p>
+    <div class="seg" id="mvKind" style="margin-bottom:12px">${[['movie', '🎬 Фільм'], ['series', '📺 Серіал']].map(([k, l]) => `<button class="${movieQ.kind === k ? 'on' : ''}" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="field"><label>Жанр</label><div class="chips" id="mvGenre" style="flex-wrap:wrap">${MOVIE_GENRES.map(g => `<button class="chip ${movieQ.genre === g ? 'on' : ''}" data-g="${g}">${g}</button>`).join('')}</div></div>
+    <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Рік від</label>${sel('mvFrom', yearOpts, movieQ.from)}</div><div class="field" style="flex:1"><label>до</label>${sel('mvTo', yearOpts, movieQ.to)}</div></div>
+    <button class="btn" style="width:100%" id="mvGo">✨ Підібрати 3 варіанти</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" id="mvRnd">🎲 Випадковий жанр</button>
+    <div id="mvRes"></div>`);
+  document.querySelectorAll('#mvKind button').forEach(b => b.onclick = () => { movieQ.kind = b.dataset.k; document.querySelectorAll('#mvKind button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
+  document.querySelectorAll('#mvGenre button').forEach(b => b.onclick = () => { movieQ.genre = b.dataset.g; document.querySelectorAll('#mvGenre button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
+  document.getElementById('mvGo').onclick = () => findMovies();
+  document.getElementById('mvRnd').onclick = () => {
+    const g = MOVIE_GENRES[1 + Math.floor(Math.random() * (MOVIE_GENRES.length - 1))];
+    movieQ.genre = g; document.querySelectorAll('#mvGenre button').forEach(x => x.classList.toggle('on', x.dataset.g === g));
+    findMovies();
+  };
+}
+async function findMovies(more) {
+  movieQ.from = document.getElementById('mvFrom')?.value || ''; movieQ.to = document.getElementById('mvTo')?.value || '';
+  if (movieQ.from && movieQ.to && +movieQ.from > +movieQ.to) [movieQ.from, movieQ.to] = [movieQ.to, movieQ.from];
+  const box = document.getElementById('mvRes'); if (!box) return;
+  if (!ONLINE) { box.innerHTML = '<div class="hint" style="margin-top:12px">ШІ працює, коли додаток відкритий у Telegram.</div>'; return; }
+  if (!more) movieSeen = [];
+  const btn = document.getElementById('mvGo'); btn.disabled = true; btn.textContent = '⏳ Думаю…';
+  setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 30);
+  box.innerHTML = `<div class="hint" style="margin-top:12px">🍿 Підбираю ${movieQ.kind === 'series' ? 'серіали' : 'фільми'}${movieQ.genre !== 'Будь-який' ? ' · ' + esc(movieQ.genre.toLowerCase()) : ''}…</div>`;
+  const exclude = [...movieSeen, ...S.wish.filter(w => w.seg === 'watch').map(w => w.title)];
+  let r; try { r = await api('movies', { kind: movieQ.kind, genre: movieQ.genre === 'Будь-який' ? '' : movieQ.genre, from: movieQ.from, to: movieQ.to, exclude }); } catch (e) { r = { error: e.message }; }
+  btn.disabled = false; btn.textContent = '✨ Підібрати 3 варіанти';
+  if (!document.getElementById('mvRes')) return;
+  if (!r || r.error || !r.list?.length) {
+    box.innerHTML = `<div class="hint" style="margin-top:12px">${r && r.error === 'limit' ? 'ШІ трохи перевантажений — спробуйте за хвилину.' : 'Не вдалося підібрати 😕 Спробуйте ще раз або інший жанр.'}</div>`; return;
+  }
+  movieSeen.push(...r.list.map(m => m.original || m.title));
+  window._mv = r.list;
+  box.innerHTML = `<div class="lbl" style="margin-top:16px">Наші варіанти</div>` + r.list.map((m, i) => `
+    <div class="card" style="padding:14px 16px;margin-bottom:10px">
+      <b style="font-size:16.5px">${esc(m.title)}${m.year ? ` <span style="color:var(--muted);font-weight:700">(${m.year})</span>` : ''}</b>
+      ${m.original && m.original !== m.title ? `<div class="ds" style="color:var(--muted)">${esc(m.original)}</div>` : ''}
+      ${m.why ? `<div class="ds" style="margin-top:4px">${esc(m.why)}</div>` : ''}
+      <div class="chips-row" style="margin-top:8px">${m.rating ? `<span class="pill">⭐ ${esc(m.rating)}</span>` : ''}
+        <a class="pill link" href="${esc(trailerUrl(m))}" target="_blank" rel="noopener" onclick="return openLink(this.href)">▶️ Трейлер</a>
+        <button class="pill" id="mvAdd${i}" onclick="addMovie(${i})">＋ У «Подивитися»</button></div>
+    </div>`).join('') + `<button class="btn ghost" style="width:100%" onclick="findMovies(true)">🔄 Інші 3 варіанти</button>`;
+  haptic('medium');
+  setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+function addMovie(i) {
+  const m = (window._mv || [])[i]; if (!m) return;
+  const title = m.title + (m.year ? ` (${m.year})` : '');
+  if (S.wish.some(w => w.seg === 'watch' && w.title === title)) return toast('Вже є у списку');
+  S.wish.unshift({ id: uid(), seg: 'watch', title, desc: [movieQ.kind === 'series' ? '📺 Серіал' : '🎬 Фільм', movieQ.genre !== 'Будь-який' ? movieQ.genre.toLowerCase() : '', m.rating ? '⭐ ' + m.rating : '', m.why].filter(Boolean).join(' · '), url: trailerUrl(m), site: '▶️ Трейлер', done: false });
+  save(); haptic('medium'); toast('Додано у «Подивитися» 🎬');
+  const b = document.getElementById('mvAdd' + i); if (b) { b.textContent = '✅ Додано'; b.disabled = true; }
+  if (typeof Sync !== 'undefined') Sync.pendingRender = true;
+}

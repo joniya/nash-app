@@ -333,6 +333,9 @@ function vWish() {
   ${wishSeg === 'gift' ? `<div class="who">${['a', 'b'].map(k => `<button class="${wishWho === k ? 'on' : ''}" onclick="wishWho='${k}';render()"><span class="mini ${k}">${ini(S.names[k])}</span>${k === S.me ? 'Хочу я' : 'Хоче ' + esc(S.names[k])}${sb(unseen('wish', w => w.seg === 'gift' && w.owner === k))}</button>`).join('')}</div>
   <div class="note-lock">🔒 Те, що ти готуєш подарунок, бачиш тільки ти</div>
   ${wishWho !== S.me ? `<button class="week-banner" style="margin-bottom:12px" onclick="openAbout(wishWho)"><span class="wi">${fe('Memo', '🗒', 28)}</span><span><b>Шпаргалка: ${esc(S.names[wishWho])}</b><small>Розміри, улюблені квіти, кава — для влучних подарунків</small></span><span class="chev">›</span></button>` : ''}` : ''}
+  ${wishSeg === 'watch' ? `<p class="sub" style="margin:2px 0 10px">🎬 Фільми й серіали, які хочемо подивитися разом. Додайте свої або попросіть ШІ підібрати.</p>
+  <button class="week-banner" style="margin-bottom:12px" onclick="openMoviePicker()"><span class="wi">${fe('Clapper board', '🎬', 28)}</span><span><b>Що подивитися сьогодні?</b><small>Оберіть жанр і роки — ШІ запропонує 3 найкращі з трейлерами</small></span><span class="chev">›</span></button>` : ''}
+  ${wishSeg === 'dream' ? `<p class="sub" style="margin:2px 0 10px">✨ Великі й маленькі спільні мрії: подорожі, досвід, плани.</p>` : ''}
   ${listHtml}
   <p class="sub" style="text-align:center;margin-top:14px;font-size:13px">♡ Помічати, що робить вас щасливими</p>`;
 }
