@@ -1,7 +1,7 @@
 /* ===== Наш улюбленець: профіль, фото, здоров'я, грумінг, корм, нагадування ===== */
 const PET_KIND = { dog: ['🐶', 'Наш пес'], cat: ['🐱', 'Наш кіт'], other: ['🐾', 'Наш улюбленець'] };
-const PET_TYPE = { health: ['💊', 'Здоров’я', '#FDE6E4'], groom: ['✂️', 'Грумінг', '#F1E3FF'], food: ['🍖', 'Корм', '#FFE8D6'], remind: ['🔔', 'Нагадування', '#FFF3CF'] };
-const PET_REPEAT = { '': 'Не повторювати', day: 'Щодня', week: 'Щотижня', '2week': 'Раз на 2 тижні', month: 'Щомісяця', year: 'Щороку' };
+const PET_TYPE = { health: ['🩺', 'Ветеринар', '#FDE6E4'], vax: ['💉', 'Щеплення', '#E3F1FF'], groom: ['✂️', 'Грумінг', '#F1E3FF'], food: ['🍖', 'Корм', '#FFE8D6'], remind: ['🔔', 'Нагадування', '#FFF3CF'] };
+const PET_REPEAT = { '': 'Не повторювати', day: 'Щодня', week: 'Щотижня', '2week': 'Раз на 2 тижні', '3month': 'Раз на 3 місяці', month: 'Щомісяця', year: 'Щороку' };
 let petSel = null, petFilter = '';
 
 const curPet = () => S.pets.find(p => p.id === petSel) || S.pets[0] || null;
@@ -26,7 +26,7 @@ function whenTxtPet(e) {
 function petEventRow(e) {
   const late = e.date && e.date < today();
   return `<div class="pet-ev${nw(e)}"><button class="check ${e.done ? 'on' : ''}" onclick="togglePetEvent('${e.id}')">${e.done ? '✓' : ''}</button>
-    <div class="tx" onclick="petEventMenu('${e.id}')"><b>${PET_TYPE[e.type]?.[0] || '🔔'} ${S.pets.length > 1 ? esc((S.pets.find(x => x.id === e.petId) || {}).name || '') + ': ' : ''}${esc(e.title)}</b><small style="${late ? 'color:#D9645A' : ''}">${whenTxtPet(e)}${e.repeat ? ' · 🔁 ' + PET_REPEAT[e.repeat].toLowerCase() : ''}${late ? ' · прострочено' : ''}</small></div></div>`;
+    <div class="tx" onclick="petEventMenu('${e.id}')"><b>${PET_TYPE[e.type]?.[0] || '🔔'} ${S.pets.length > 1 ? esc((S.pets.find(x => x.id === e.petId) || {}).name || '') + ': ' : ''}${esc(e.title)}</b><small style="${late ? 'color:#D9645A' : ''}">${whenTxtPet(e)}${e.note ? ' · ' + esc(e.note) : ''}${e.repeat ? ' · 🔁 ' + PET_REPEAT[e.repeat].toLowerCase() : ''}${late ? ' · прострочено' : ''}</small></div></div>`;
 }
 
 /* ---- віджет на головній ---- */
@@ -79,10 +79,33 @@ function vPet() {
   <div class="pet-q big">${Object.entries(PET_TYPE).map(([t, [ic, l, bg]]) => `<button class="${petFilter === t ? 'on' : ''}" onclick="petFilter=petFilter==='${t}'?'':'${t}';render()"><span style="background:${bg}">${ic}</span>${l}</button>`).join('')}</div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center"><div class="sec-t" style="margin:0">${petFilter ? PET_TYPE[petFilter][0] + ' ' + PET_TYPE[petFilter][1] : 'Ближчі події'}</div><button class="btn sm" onclick="addPetEvent(null,petFilter)">+ Додати</button></div>
+    ${petFilter === 'vax' && !S.petEvents.some(e => e.petId === p.id && e.plan) ? `<div class="hint" style="margin:10px 0 4px">Типовий догляд: щорічне щеплення, обробка від бліх і кліщів, глистогінне. Точний графік підкаже ваш ветеринар.</div><button class="btn" style="width:100%;margin:6px 0" onclick="addPetPlan('${p.id}')">💉 Додати план щеплень і обробок</button>` : ''}
     ${open.length ? open.map(petEventRow).join('') : `<div class="empty" style="margin-top:10px">Поки немає подій${petFilter ? ' цього типу' : ''}.</div>`}
   </div>
   ${done.length ? `<div class="lbl">✅ Виконано нещодавно</div><div class="card" style="padding:6px 16px">${done.map(petEventRow).join('')}</div>` : ''}
   <button class="row" style="width:100%;text-align:left" onclick="S.widgets.pet=S.widgets.pet===false?true:false;save();render()"><div class="ic">🏠</div><div class="tx"><b>Показувати на головній</b><small>Віджет з ближчими подіями</small></div><span class="switch ${S.widgets.pet === false ? '' : 'on'}"></span></button>`;
+}
+function addPetPlan(petId) {
+  const p = S.pets.find(x => x.id === petId); if (!p) return;
+  const cat = p.kind === 'cat';
+  formSheet('План для ' + p.name + ' 💉', [
+    { k: 'vax', l: 'Коли було останнє щеплення (сказ + комплексне)?', type: 'date', max: today(), req: false },
+    { k: 'flea', l: 'Остання обробка від бліх і кліщів', type: 'date', max: today(), req: false },
+    { k: 'worm', l: 'Останнє глистогінне', type: 'date', max: today(), req: false },
+    { k: 'vet', l: 'Останній профогляд у ветеринара', type: 'date', max: today(), req: false }
+  ], v => {
+    const plan = [
+      ['vax', 'Щорічне щеплення: сказ + комплексне', cat ? 'панлейкопенія, каліцивіроз, герпес' : 'чума, парвовірус, гепатит, лептоспіроз', 'year', v.vax],
+      ['health', 'Обробка від бліх і кліщів', 'краплі або таблетка', 'month', v.flea],
+      ['health', 'Глистогінне', '', '3month', v.worm],
+      ['health', 'Профогляд у ветеринара', '', 'year', v.vet]
+    ];
+    plan.forEach(([type, title, note, repeat, last]) => {
+      if (S.petEvents.some(e => e.petId === petId && e.plan && e.title === title)) return;
+      S.petEvents.push({ id: uid(), petId, type, title, note, date: last ? petNext(last, repeat) : today(), time: '', repeat, done: false, plan: 'std' });
+    });
+    toast('План додано 💉 Наступні дати пораховано автоматично');
+  }, 'Додати план');
 }
 function openPetType(t) { petFilter = t; go('pet'); }
 
@@ -134,7 +157,7 @@ function setPetPhoto(input, id) {
 /* ---- події ---- */
 function addPetEvent(e, type) {
   const p = curPet(); if (!p) return editPet();
-  const ph = { health: 'Таблетка (Apoquel), щеплення, ветеринар…', groom: 'Грумінг, купання, кігті…', food: 'Купити корм, змінити корм…', remind: 'Прогулянка, ліки від бліх…' };
+  const ph = { health: 'Ветеринар, таблетка (Apoquel), аналізи…', vax: 'Сказ, комплексне щеплення…', groom: 'Грумінг, купання, кігті…', food: 'Купити корм, змінити корм…', remind: 'Прогулянка, ліки від бліх…' };
   formSheet(e ? 'Подія' : 'Нова подія для ' + p.name, [
     { k: 'type', l: 'Тип', type: 'select', v: e?.type || type || 'health', opts: Object.entries(PET_TYPE).map(([k, [ic, l]]) => [k, ic + ' ' + l]) },
     { k: 'title', l: 'Що', v: e?.title, ph: ph[e?.type || type || 'health'], maxlen: 80, req: true },
@@ -149,7 +172,7 @@ function addPetEvent(e, type) {
 }
 function petNext(date, rep) {
   const d = parseD(validDate(date) ? date : today());
-  const step = () => { if (rep === 'day') d.setDate(d.getDate() + 1); else if (rep === 'week') d.setDate(d.getDate() + 7); else if (rep === '2week') d.setDate(d.getDate() + 14); else if (rep === 'year') d.setFullYear(d.getFullYear() + 1); else { const day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); } };
+  const step = () => { if (rep === 'day') d.setDate(d.getDate() + 1); else if (rep === 'week') d.setDate(d.getDate() + 7); else if (rep === '2week') d.setDate(d.getDate() + 14); else if (rep === 'year') d.setFullYear(d.getFullYear() + 1); else { const n = rep === '3month' ? 3 : 1; const day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + n); d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); } };
   step(); while (ymd(d) < today()) step();
   return ymd(d);
 }

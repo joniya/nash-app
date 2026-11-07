@@ -342,8 +342,8 @@ body.gated nav{display:none}
 .pet-name{display:block;font-weight:900;font-size:19px}
 .pet-w small,.pet-card small{color:var(--ink2);font-size:13.5px}
 .pet-card{display:flex;gap:14px;align-items:center}
-.pet-q{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
-.pet-q button{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--ink2);padding:4px 0;border-radius:14px}
+.pet-q{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;margin-top:14px}
+.pet-q button{min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--ink2);padding:4px 0;border-radius:14px}
 .pet-q button span{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:21px}
 .pet-q.big{margin:0 0 14px}
 .pet-q button.on{color:var(--tan-d);background:var(--soft2)}
@@ -404,6 +404,7 @@ body.gated nav{display:none}
 [data-theme=glassdark] .pet-q button:nth-child(1) span{background:rgba(255,99,132,.26)!important}
 [data-theme=glassdark] .pet-q button:nth-child(2) span{background:rgba(176,120,255,.28)!important}
 [data-theme=glassdark] .pet-q button:nth-child(3) span{background:rgba(255,150,70,.28)!important}
+[data-theme=glassdark] .pet-w .pet-q button:nth-child(2) span,[data-theme=glassdark] .pet-q.big button:nth-child(2) span{background:rgba(90,170,255,.28)!important}
 [data-theme=glassdark] .pet-q button:nth-child(4) span{background:rgba(255,210,70,.26)!important}
 [data-theme=glassdark] .grid4 .gcard:nth-child(6n+1) .gi{background:rgba(255,99,132,.26)!important}
 [data-theme=glassdark] .grid4 .gcard:nth-child(6n+2) .gi{background:rgba(90,170,255,.28)!important}
@@ -425,3 +426,4 @@ body.gated nav{display:none}
 html.noblur *,html.noblur *::before{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html.noblur[data-theme=glass]{--card:rgba(255,255,255,.8);--soft:rgba(255,255,255,.75);--soft2:rgba(255,255,255,.62)}
 html.noblur[data-theme=glassdark]{--card:rgba(32,35,58,.88);--soft:rgba(48,52,80,.85);--soft2:rgba(40,44,70,.8)}
+.pet-q:has(>button:nth-child(5)){gap:2px}.pet-q:has(>button:nth-child(5)) button{font-size:10.5px;letter-spacing:-.2px;white-space:nowrap}
