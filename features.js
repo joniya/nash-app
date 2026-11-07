@@ -466,6 +466,18 @@ function openMoviePicker() {
     <div id="mvRes"></div>`);
   document.querySelectorAll('#mvKind button').forEach(b => b.onclick = () => { movieQ.kind = b.dataset.k; document.querySelectorAll('#mvKind button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
   document.querySelectorAll('#mvGenre button').forEach(b => b.onclick = () => { movieQ.genre = b.dataset.g; document.querySelectorAll('#mvGenre button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
+  // «до» не раніше за «від», і навпаки — зайві роки просто не показуються
+  const fillYears = () => {
+    const f = document.getElementById('mvFrom'), t = document.getElementById('mvTo');
+    const fv = f.value, tv = t.value;
+    const opts = (min, max, v) => [['', 'будь-який'], ...yearOpts.slice(1).filter(([y]) => (!min || +y >= +min) && (!max || +y <= +max))]
+      .map(([k, l]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${l}</option>`).join('');
+    f.innerHTML = opts('', tv, fv); t.innerHTML = opts(fv, '', tv);
+    movieQ.from = fv; movieQ.to = tv;
+  };
+  document.getElementById('mvFrom').onchange = fillYears;
+  document.getElementById('mvTo').onchange = fillYears;
+  fillYears();
   document.getElementById('mvGo').onclick = () => findMovies();
   document.getElementById('mvRnd').onclick = () => {
     const g = MOVIE_GENRES[1 + Math.floor(Math.random() * (MOVIE_GENRES.length - 1))];
