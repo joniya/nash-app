@@ -171,8 +171,27 @@ function shareInvite() {
   const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('Приєднуйся до нашого спільного простору 💛');
   try { tg.openTelegramLink(url); } catch (e) { copyText(link); }
 }
-function copyText(t) {
-  try { navigator.clipboard.writeText(t).then(() => toast('Скопійовано 📋'), () => toast(t)); } catch (e) { toast(t); }
+/* копіювання з надійним запасним варіантом (у WebView Telegram clipboard API часто заблоковане) */
+function copyFallback(t) {
+  try {
+    const ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, t.length);
+    const ok = document.execCommand('copy'); ta.remove(); return ok;
+  } catch (e) { return false; }
+}
+function copyText(t, btn) {
+  const done = ok => {
+    haptic(ok ? 'medium' : 'light');
+    if (ok) toast('Скопійовано 📋 Тепер вставте в чат');
+    else openSheet(`<h3>Скопіюйте вручну</h3><p class="sub">Затисніть текст нижче і виберіть «Копіювати».</p><textarea readonly style="width:100%;min-height:90px" onclick="this.select()">${esc(t)}</textarea><button class="btn" style="width:100%;margin-top:10px" onclick="closeSheet()">Готово</button>`);
+    if (btn && ok) {
+      const html = btn.innerHTML; btn.classList.add('copied'); btn.innerHTML = '✅ Скопійовано';
+      clearTimeout(btn._t); btn._t = setTimeout(() => { btn.innerHTML = html; btn.classList.remove('copied'); }, 2000);
+    }
+  };
+  if (copyFallback(t)) return done(true);
+  try { navigator.clipboard.writeText(t).then(() => done(true), () => done(false)); } catch (e) { done(false); }
 }
 
 /* ===== Запуск ===== */

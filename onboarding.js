@@ -42,7 +42,7 @@ function showInviteGate() {
     <h2 class="gate-h2">Запроси свою половинку 💌</h2>
     <p class="gate-sub">${APP_NAME} працює для двох: усе, що ви додаєте, бачите обоє. Надішли посилання партнеру — і почнемо!</p>
     <button class="gate-btn" onclick="shareInvite()">💌 Надіслати запрошення</button>
-    ${link ? `<button class="gate-btn ghost" onclick="copyText(inviteLink())">📋 Скопіювати посилання</button>` : ''}
+    ${link ? `<button class="gate-btn ghost" onclick="copyText(inviteLink(),this)">📋 Скопіювати посилання</button>` : ''}
     <div class="gate-wait"><span class="dot"></span>Чекаємо, поки партнер відкриє посилання…</div>
     <p class="gate-note">Партнеру треба натиснути на посилання, потім <b>Start</b> у боті та відкрити додаток.</p>
   </div>`);

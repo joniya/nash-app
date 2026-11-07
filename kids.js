@@ -69,7 +69,7 @@ function vKid() {
   const k = curKid();
   if (!k) return `<div class="backline"><button onclick="goBack()">‹ Назад</button></div>
     <h1>Наші діти 👶</h1><p class="sub">Щеплення за календарем, візити до лікаря, ріст і вага, перші моменти — спільно на двох.</p>
-    <div class="empty">${BEAGLE}Додайте дитину, щоб почати</div><button class="btn" style="width:100%;margin-top:12px" onclick="editKid()">+ Додати дитину</button>`;
+    <div class="empty"><div style="font-size:64px;line-height:1;margin-bottom:8px">👶</div>Додайте дитину, щоб почати</div><button class="btn" style="width:100%;margin-top:12px" onclick="editKid()">+ Додати дитину</button>`;
   const evs = kidEventsOf(k, true).filter(e => !kidFilter || e.type === kidFilter);
   const open = evs.filter(e => !e.done), done = evs.filter(e => e.done).slice(-12).reverse();
   const g = S.kidGrowth.filter(x => x.kidId === k.id).sort((a, b) => (b.date || '').localeCompare(a.date || ''));

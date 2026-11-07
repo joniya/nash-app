@@ -894,7 +894,7 @@ function addFound(i) {
 /* ===== Дім ===== */
 function homeAdd() { if (homeSeg === 'shop') formSheet('Додати покупку', [{ k: 'title', l: 'Що купити' }], v => { S.shop.unshift({ id: uid(), title: v.title, done: false, kind: shopKind }); }); else if (homeSeg === 'tasks') addTask(); else addRecipe(); }
 function addShop(t) {
-  t = (t || '').trim(); if (!t) return;
+  t = (t || '').trim(); if (!t) { const i = document.getElementById('shopIn'); if (i) i.focus(); toast('Напишіть, що купити ✍️'); return; }
   if (S.shop.some(s => !s.done && s.title.toLowerCase() === t.toLowerCase())) { toast('«' + t + '» вже є у списку'); return; }
   S.shop.unshift({ id: uid(), title: t.slice(0, 80), done: false, kind: shopKind });
   const inp = document.getElementById('shopIn'); if (inp) inp.value = '';

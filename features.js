@@ -319,7 +319,7 @@ function openCouple() {
   let notifyOn = true; try { notifyOn = localStorage.getItem('notify') !== '0'; } catch (e) {}
   openSheet(`<h3>Наша пара 💑</h3>
     <div class="couple" style="text-align:center;margin-bottom:10px"><div class="pics">${avatarHTML('a', 'pic a')}<div class="heart">❤️</div>${avatarHTML('b', 'pic b')}</div><h2 style="font-size:20px">${esc(S.names.a)} &amp; ${esc(S.names.b)}</h2></div>
-    ${ONLINE ? (full ? '<div class="hint">✅ Ви обоє в додатку — усе синхронізується.</div>' : `<div class="hint">Партнер ще не приєднався. Надішли запрошення:</div><div class="acts" style="margin-bottom:12px"><button class="btn ghost" onclick="copyText(inviteLink())">📋 Копіювати</button><button class="btn" onclick="shareInvite()">Надіслати</button></div>`)
+    ${ONLINE ? (full ? '<div class="hint">✅ Ви обоє в додатку — усе синхронізується.</div>' : `<div class="hint">Партнер ще не приєднався. Надішли запрошення:</div><div class="acts" style="margin-bottom:12px"><button class="btn ghost" onclick="copyText(inviteLink(),this)">📋 Копіювати</button><button class="btn" onclick="shareInvite()">Надіслати</button></div>`)
       : '<div class="hint">Зараз додаток працює локально (тестовий режим). Після підключення сервера тут з’явиться запрошення для партнера.</div>'}
     ${ONLINE ? `<button class="row" style="width:100%;text-align:left" id="ntf"><div class="ic">🔔</div><div class="tx"><b>Сповіщення від бота</b><small>${notifyOn ? 'Увімкнено' : 'Вимкнено'}</small></div><span class="switch ${notifyOn ? 'on' : ''}"></span></button>` : ''}
     <button class="row" style="width:100%;text-align:left" onclick="openThemes()"><div class="ic">🎨</div><div class="tx"><b>Оформлення</b><small>${THEMES[getTheme()]}</small></div>›</button>
@@ -354,7 +354,7 @@ function openBackup() {
     if (inTG) toast('Якщо файл не завантажився — надішліть копію в чат із ботом');
     return true;
   };
-  document.getElementById('bkCopy').onclick = () => copyText(backupJSON());
+  document.getElementById('bkCopy').onclick = () => copyText(backupJSON(), document.getElementById('bkCopy'));
   const bot = document.getElementById('bkBot');
   if (bot) bot.onclick = async () => {
     bot.disabled = true; bot.textContent = 'Надсилаю…';
