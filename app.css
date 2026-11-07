@@ -287,3 +287,4 @@ html,body{transition:background .3s}
 .goal.reached{box-shadow:0 0 0 2px #3FB06A,var(--shadow)}
 .goal.reached .progress div{background:#3FB06A}
 .goal.new{box-shadow:0 0 0 2px var(--tan),var(--shadow)}
+.together.wed{margin-top:2px}

@@ -78,6 +78,7 @@ function migrate(s) {
   });
   delete s.datesCount; delete s.tripsCount;
   if (s.since && (!validDate(s.since) || s.since > today())) s.since = '';
+  if (s.wedding && (!validDate(s.wedding) || s.wedding > today())) s.wedding = '';
   s.events = s.events.filter(e => validDate(e.date));
   s.tasks.forEach(t => { if (t.date && !validDate(t.date)) t.date = ''; });
   // одна стара копилка → список скарбничок
@@ -175,7 +176,7 @@ function statCard(kind, label) {
     <div class="pm"><button onclick="minus('${kind}')" aria-label="Мінус">−</button><button onclick="quickAdd('${kind}')" aria-label="Плюс">+</button></div></div>`;
 }
 function vUs() {
-  const n = S.names, togetherDays = S.since ? daysBetween(S.since, today()) : null;
+  const n = S.names, togetherDays = S.since ? daysBetween(S.since, today()) : null, marriedDays = S.wedding ? daysBetween(S.wedding, today()) : null;
   const myMood = (S.moods[S.me] || {})[today()], hisMood = (S.moods[other()] || {})[today()];
   const moodName = { g: 'чудово', n: 'норм', s: 'сумно' };
   const t0 = today();
@@ -193,8 +194,9 @@ function vUs() {
     <div class="pics">${avatarHTML('a', 'pic a')}<button class="heart nudge" onclick="nudge(event)" title="Думаю про тебе">❤️</button>${avatarHTML('b', 'pic b')}</div>
     <h2>${esc(n.a)} &amp; ${esc(n.b)}</h2>
     ${togetherDays !== null ? `<div class="together">${togetherDays === 0 ? 'Разом з сьогодні 💛' : `Разом ${togetherDays} ${plural(togetherDays, 'день', 'дні', 'днів')} 💛`}</div>` : ''}
+    ${marriedDays !== null ? `<div class="together wed">${marriedDays === 0 ? 'Одружені з сьогодні 💍' : `Одружені ${marriedDays} ${plural(marriedDays, 'день', 'дні', 'днів')} 💍`}</div>` : ''}
     <div class="stats">
-      <button class="stat add" onclick="setSince()"><b>${S.since ? '✎' : '+'}</b><span>${S.since ? fmtS(S.since) : 'Додати дату'}</span></button>
+      <button class="stat add" onclick="setSince()"><b>${S.since || S.wedding ? '✎' : '+'}</b><span>${S.since || S.wedding ? 'Наші дати' : 'Додати дату'}</span></button>
       ${statCard('dates', 'Побачень')}
       ${statCard('trips', 'Поїздок')}
     </div>
@@ -358,8 +360,19 @@ ${goalsHTML()}
 
 /* ===== Дії: головна ===== */
 function setSince() {
-  formSheet('Коли ви разом?', [{ k: 'since', l: 'Дата початку стосунків', type: 'date', v: S.since, max: today(), maxMsg: 'Ця дата не може бути в майбутньому', req: false }],
-    v => { S.since = v.since; });
+  formSheet('Наші дати 💞', [
+    { k: 'since', l: '💛 Дата початку стосунків', type: 'date', v: S.since, max: today(), maxMsg: 'Ця дата не може бути в майбутньому', req: false },
+    { k: 'wedding', l: '💍 Дата одруження (необов’язково)', type: 'date', v: S.wedding, max: today(), maxMsg: 'Дата одруження не може бути в майбутньому', req: false }
+  ], v => {
+    if (v.since && v.wedding && v.wedding < v.since) return 'Дата одруження не може бути раніше початку стосунків';
+    S.since = v.since; S.wedding = v.wedding;
+    // річниця весілля — у «Важливі дати», щоб бот нагадував
+    if (v.wedding) {
+      const ev = S.events.find(e => e.kind === 'wedding');
+      if (ev) ev.date = v.wedding;
+      else S.events.push({ id: uid(), kind: 'wedding', title: 'Річниця весілля', date: v.wedding, emoji: '💍', yearly: true });
+    } else S.events = S.events.filter(e => e.kind !== 'wedding');
+  });
 }
 function setMood(m) { const mm = (S.moods[S.me] = S.moods[S.me] || {}); mm[today()] = mm[today()] === m ? undefined : m; save(); render(); haptic(); }
 function addNote() { formSheet('Записка для ' + S.names[other()], [{ k: 'text', l: 'Текст записки', type: 'textarea', ph: 'Напиши щось приємне 💌' }], v => { S.notes.push({ id: uid(), text: v.text, from: S.me, date: today() }); toast('Записку надіслано 💌'); }, 'Надіслати'); }

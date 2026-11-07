@@ -271,6 +271,7 @@ function memoriesHTML() {
   S.dates.forEach(d => { if (validDate(d.date) && d.date.slice(5) === md && +d.date.slice(0, 4) < y) out.push([+d.date.slice(0, 4), '💛 ' + (d.title || 'побачення')]); });
   S.trips.forEach(d => { if (validDate(d.date) && d.date.slice(5) === md && +d.date.slice(0, 4) < y) out.push([+d.date.slice(0, 4), '🧳 ' + (d.title || 'поїздка')]); });
   if (S.since && S.since.slice(5) === md && +S.since.slice(0, 4) < y) out.push([+S.since.slice(0, 4), '💞 день, коли ви почали зустрічатися']);
+  if (S.wedding && S.wedding.slice(5) === md && +S.wedding.slice(0, 4) < y) out.push([+S.wedding.slice(0, 4), '💍 ваше весілля']);
   if (!out.length) return '';
   return `<div class="card memory"><div class="lbl" style="margin:0 0 6px">📸 Цього дня</div>${out.map(([yr, txt]) => { const n = y - yr; return `<div class="mem-row"><b>${n} ${plural(n, 'рік', 'роки', 'років')} тому</b> — ${esc(txt)}</div>`; }).join('')}</div>`;
 }
