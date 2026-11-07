@@ -399,8 +399,27 @@ body.gated nav{display:none}
 .sw.glass i:nth-child(1){background:linear-gradient(135deg,#9DB4FF,#FFB3D1)}.sw.glass i:nth-child(2){background:rgba(255,255,255,.7);border:1px solid #dde}.sw.glass i:nth-child(3){background:#5B6CFF}
 .sw.glassdark i:nth-child(1){background:linear-gradient(135deg,#3B4BFF,#B0307A)}.sw.glassdark i:nth-child(2){background:#1a1d30}.sw.glassdark i:nth-child(3){background:#8E9BFF}
 @media (prefers-reduced-motion: reduce){:is([data-theme=glass],[data-theme=glassdark]) body::before{animation:none}}
-[data-theme=glassdark] .gi,[data-theme=glassdark] .pet-q button span{filter:saturate(.9) brightness(.55)}
-[data-theme=glassdark] .gi .fe,[data-theme=glassdark] .gi .fe-fb{filter:brightness(1.8)}
+/* «Скло ніч»: яскраві напівпрозорі кольорові плашки замість затемнених пастельних */
+[data-theme=glassdark] :is(.gi,.pet-q button span){filter:none!important;border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+[data-theme=glassdark] .pet-q button:nth-child(1) span{background:rgba(255,99,132,.26)!important}
+[data-theme=glassdark] .pet-q button:nth-child(2) span{background:rgba(176,120,255,.28)!important}
+[data-theme=glassdark] .pet-q button:nth-child(3) span{background:rgba(255,150,70,.28)!important}
+[data-theme=glassdark] .pet-q button:nth-child(4) span{background:rgba(255,210,70,.26)!important}
+[data-theme=glassdark] .grid4 .gcard:nth-child(6n+1) .gi{background:rgba(255,99,132,.26)!important}
+[data-theme=glassdark] .grid4 .gcard:nth-child(6n+2) .gi{background:rgba(90,170,255,.28)!important}
+[data-theme=glassdark] .grid4 .gcard:nth-child(6n+3) .gi{background:rgba(255,140,90,.28)!important}
+[data-theme=glassdark] .grid4 .gcard:nth-child(6n+4) .gi{background:rgba(190,120,255,.28)!important}
+[data-theme=glassdark] .grid4 .gcard:nth-child(6n+5) .gi{background:rgba(80,220,150,.24)!important}
+[data-theme=glassdark] .grid4 .gcard:nth-child(6n+6) .gi{background:rgba(255,210,70,.24)!important}
+[data-theme=glassdark] .pet-q button{color:#DDE2FF}
+[data-theme=glassdark] .mood.g{background:rgba(80,220,140,.2);color:#8BF2B0}
+[data-theme=glassdark] .mood.n{background:rgba(255,205,70,.2);color:#FFD970}
+[data-theme=glassdark] .mood.s{background:rgba(255,110,140,.2);color:#FF9DB2}
+[data-theme=glassdark] .mood{border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+[data-theme=glassdark] .mood.on{border:2px solid currentColor;box-shadow:0 0 18px color-mix(in srgb,currentColor 35%,transparent)}
+[data-theme=glassdark] .memory,[data-theme=glassdark] .finder{background:linear-gradient(135deg,rgba(255,160,90,.18),rgba(255,100,160,.18))}
+[data-theme=glassdark] .couple .heart{background:rgba(255,99,132,.25)}
+[data-theme=glassdark] .tile:not(.dark) .ti,[data-theme=glassdark] .row .ic,[data-theme=glassdark] .item .ic,[data-theme=glassdark] .goal-em{background:rgba(255,255,255,.12)}
 
 /* Скло без розмиття для Telegram на ПК: щільніший фон, жодних backdrop-filter */
 html.noblur *,html.noblur *::before{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
