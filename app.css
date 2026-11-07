@@ -288,3 +288,18 @@ html,body{transition:background .3s}
 .goal.reached .progress div{background:#3FB06A}
 .goal.new{box-shadow:0 0 0 2px var(--tan),var(--shadow)}
 .together.wed{margin-top:2px}
+
+/* ===== Пошук міст і фото місць ===== */
+.field.ac{position:relative}
+.ac-list{position:absolute;left:0;right:0;top:100%;z-index:5;background:var(--card);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15);overflow:hidden;margin-top:4px}
+.ac-list:empty{display:none}
+.ac-item{display:block;width:100%;text-align:left;padding:11px 14px;border-bottom:1px solid var(--line)}
+.ac-item:last-child{border-bottom:0}
+.ac-item b{display:block;font-weight:800}.ac-item small{color:var(--ink2);font-size:12.5px}
+.ac-item:active{background:var(--soft)}
+.res-ph{position:relative;height:150px;margin:-14px -14px 12px;border-radius:18px 18px 0 0;overflow:hidden;background:var(--soft) center/cover no-repeat}
+.res-ph .mt{position:absolute;left:0;top:0;width:768px;height:768px}
+.res-ph .mt img{position:absolute;width:256px;height:256px}
+.res-ph .pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:28px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.res-ph.photo{background-size:cover}
+.loading small{font-weight:600;color:var(--muted)}

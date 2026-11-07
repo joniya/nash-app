@@ -588,39 +588,124 @@ const TAGCAT = t => {
   return ['Розваги', '🎡'];
 };
 let finderCat = 'all', finderRes = [], geoCache = {}, osmCache = {};
+/* запит з обмеженням часу — щоб нічого не «висіло» */
+async function fetchT(url, opts = {}, ms = 15000) {
+  const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
+  finally { clearTimeout(t); }
+}
+/* ---- підказки міст (Photon / OpenStreetMap) ---- */
+let cityTimer = null, cityReq = 0;
+async function citySuggest(q) {
+  const box = document.getElementById('fCityList'); if (!box) return;
+  q = q.trim();
+  if (q.length < 2) { box.innerHTML = ''; return; }
+  const my = ++cityReq;
+  try {
+    const r = await fetchT('https://photon.komoot.io/api/?limit=6&layer=city&q=' + encodeURIComponent(q), {}, 6000);
+    const j = await r.json();
+    if (my !== cityReq) return;
+    const seen = new Set();
+    const items = (j.features || []).map(f => {
+      const p = f.properties || {}, [lon, lat] = f.geometry.coordinates;
+      const sub = [p.state, p.country].filter(Boolean).join(', ');
+      return { name: p.name, sub, lat, lon };
+    }).filter(x => x.name && !seen.has(x.name + x.sub) && seen.add(x.name + x.sub));
+    box.innerHTML = items.map((x, i) => `<button class="ac-item" data-i="${i}"><b>${esc(x.name)}</b><small>${esc(x.sub)}</small></button>`).join('');
+    box.querySelectorAll('.ac-item').forEach(b => b.onclick = () => {
+      const x = items[+b.dataset.i];
+      document.getElementById('fCity').value = x.name;
+      S.city = x.name; S.cityGeo = { name: x.name, sub: x.sub, lat: x.lat, lon: x.lon }; save();
+      geoCache[x.name.toLowerCase()] = { lat: x.lat, lon: x.lon, name: x.name + (x.sub ? ', ' + x.sub.split(', ').pop() : '') };
+      box.innerHTML = ''; haptic();
+    });
+  } catch (e) { if (my === cityReq) box.innerHTML = ''; }
+}
 async function geocode(city) {
   const k = city.toLowerCase(); if (geoCache[k]) return geoCache[k];
-  const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=uk&q=' + encodeURIComponent(city));
+  if (S.cityGeo && S.cityGeo.name.toLowerCase() === k) return (geoCache[k] = { lat: S.cityGeo.lat, lon: S.cityGeo.lon, name: S.cityGeo.name });
+  let r;
+  try { r = await fetchT('https://photon.komoot.io/api/?limit=1&layer=city&q=' + encodeURIComponent(city), {}, 8000); }
+  catch (e) { throw new Error('geo'); }
   if (!r.ok) throw new Error('geo');
-  const j = await r.json(); if (!j.length) throw new Error('nocity');
-  return (geoCache[k] = { lat: +j[0].lat, lon: +j[0].lon, name: j[0].display_name.split(',').slice(0, 2).join(',') });
+  const j = await r.json(), f = (j.features || [])[0];
+  if (!f) throw new Error('nocity');
+  const [lon, lat] = f.geometry.coordinates, p = f.properties || {};
+  return (geoCache[k] = { lat, lon, name: [p.name, p.country].filter(Boolean).join(', ') });
 }
+/* ---- місця з OpenStreetMap: кілька серверів, бо головний буває перевантажений ---- */
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
 async function osmPlaces(geo, cat) {
   const key = geo.lat.toFixed(3) + ',' + geo.lon.toFixed(3) + ',' + cat; if (osmCache[key]) return osmCache[key];
   const qs = cat === 'all' ? Object.values(CATS).flatMap(c => c.q || []) : CATS[cat].q;
-  const around = `(around:7000,${geo.lat},${geo.lon})`;
-  const query = `[out:json][timeout:25];(${qs.map(q => q + '["name"]' + around + ';').join('')});out center 500;`;
-  const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-  if (!r.ok) throw new Error('osm');
-  const j = await r.json(), seen = new Set();
+  const around = `(around:6000,${geo.lat},${geo.lon})`;
+  const query = `[out:json][timeout:20];(${qs.map(q => q + '["name"]' + around + ';').join('')});out center 400;`;
+  let j = null;
+  for (const url of OVERPASS) {
+    try {
+      const r = await fetchT(url, { method: 'POST', body: 'data=' + encodeURIComponent(query), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 22000);
+      if (!r.ok) continue;
+      j = await r.json(); break;
+    } catch (e) { /* наступний сервер */ }
+  }
+  if (!j) throw new Error('osm');
+  const seen = new Set();
   const list = (j.elements || []).map(e => {
     const t = e.tags || {}, [cl, ic] = TAGCAT(t), lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
     const addr = [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(', ');
     const extra = [t.cuisine && 'кухня: ' + t.cuisine.replace(/;/g, ', '), t.opening_hours && 'години: ' + t.opening_hours, t.description].filter(Boolean).join(' · ');
-    return { name: t['name:uk'] || t.name, cat: cl, ic, addr, extra, lat, lon, web: t.website || t['contact:website'] || '' };
+    return { name: t['name:uk'] || t.name, cat: cl, ic, addr, extra, lat, lon, web: t.website || t['contact:website'] || '', wikidata: t.wikidata || '', commons: t.wikimedia_commons || '', image: t.image || '' };
   }).filter(p => p.name && p.lat && !seen.has(p.name.toLowerCase()) && seen.add(p.name.toLowerCase()));
   return (osmCache[key] = list);
 }
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 async function aiPick(cands, city, wish) {
-  const list = cands.slice(0, 90);
-  const r = await api('ai-places', { city, wish, cands: list.map(p => ({ name: p.name, cat: p.cat, extra: p.extra })) });
-  if (r.error) throw new Error(r.error === 'limit' ? 'limit' : 'ai');
+  const list = cands.slice(0, 70);
+  const r = await Promise.race([
+    api('ai-places', { city, wish, cands: list.map(p => ({ name: p.name, cat: p.cat, extra: p.extra })) }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 32000))
+  ]);
+  if (r.error) throw new Error(r.error);
   return (r.picks || []).filter(x => list[x.n]).map(x => ({ ...list[x.n], why: x.why }));
+}
+/* ---- фото: Вікідані / Wikimedia Commons; якщо фото немає — мінікарта ---- */
+function mapThumbHTML(lat, lon) {
+  const z = 16, n = 2 ** z, xf = (lon + 180) / 360 * n, yf = (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * n;
+  const x = Math.floor(xf), y = Math.floor(yf), px = (xf - x) * 256, py = (yf - y) * 256;
+  let tiles = '';
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++)
+    tiles += `<img alt="" loading="lazy" src="https://${'abcd'[(x + y + dx + dy) & 3]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x + dx}/${y + dy}.png" style="left:${(dx + 1) * 256}px;top:${(dy + 1) * 256}px" onerror="this.remove()">`;
+  return `<div class="mt" style="left:calc(50% - ${(256 + px).toFixed(0)}px);top:calc(50% - ${(256 + py).toFixed(0)}px)">${tiles}</div><span class="pin">📍</span>`;
+}
+const commonsURL = f => 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(f).replace(/^File:/i, '')) + '?width=640';
+async function loadPhotos(list, run) {
+  list.forEach((p, i) => {
+    let src = '';
+    if (/^https:\/\/.+\.(jpe?g|png|webp)(\?.*)?$/i.test(p.image)) src = p.image;
+    else if (/^File:/i.test(p.commons)) src = commonsURL(p.commons);
+    if (src) setPhoto(i, src, run);
+  });
+  const ids = [...new Set(list.filter(p => /^Q\d+$/.test(p.wikidata) && !p.image && !/^File:/i.test(p.commons)).map(p => p.wikidata))];
+  if (!ids.length) return;
+  try {
+    const r = await fetchT(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.slice(0, 50).join('|')}&props=claims&format=json&origin=*`, {}, 8000);
+    const j = await r.json();
+    list.forEach((p, i) => {
+      const f = j.entities?.[p.wikidata]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+      if (f) setPhoto(i, commonsURL(f), run);
+    });
+  } catch (e) {}
+}
+function setPhoto(i, src, run) {
+  if (run !== finderRun) return;
+  const box = document.getElementById('ph' + i); if (!box) return;
+  const img = new Image();
+  img.onload = () => { if (run !== finderRun) return; box.innerHTML = ''; box.classList.add('photo'); box.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; };
+  img.src = src;
 }
 function openFinder(random) {
   openSheet(`<h3>✨ Ідеї в місті</h3>
-    <div class="field"><label>Місто</label><input id="fCity" maxlength="40" placeholder="Наприклад: Львів" value="${esc(S.city)}"></div>
+    <div class="field ac"><label>Місто</label><input id="fCity" maxlength="60" autocomplete="off" placeholder="Почніть вводити: Льв..." value="${esc(S.city)}"><div class="ac-list" id="fCityList"></div></div>
     <div class="chips" id="fCats">${Object.entries(CATS).map(([k, c]) => `<button class="chip ${k === finderCat ? 'on' : ''}" data-c="${k}">${c.l}</button>`).join('')}</div>
     ${ONLINE ? `<div class="field"><label>Що хочеться? (AI підбере)</label><input id="fWish" maxlength="120" placeholder="Затишно й недорого, щоб поговорити..."></div>`
       : `<div class="hint">💡 Після підключення сервера AI підбиратиме місця під ваш настрій і пояснюватиме, чому туди варто піти.</div>`}
@@ -629,38 +714,57 @@ function openFinder(random) {
   document.querySelectorAll('#fCats .chip').forEach(b => b.onclick = () => { finderCat = b.dataset.c; document.querySelectorAll('#fCats .chip').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
   document.getElementById('fGo').onclick = () => runFinder(false);
   document.getElementById('fRand').onclick = () => runFinder(true);
-  document.getElementById('fCity').onkeydown = e => { if (e.key === 'Enter') runFinder(false); };
+  const ci = document.getElementById('fCity');
+  ci.oninput = () => { clearTimeout(cityTimer); cityTimer = setTimeout(() => citySuggest(ci.value), 300); };
+  ci.onkeydown = e => { if (e.key === 'Enter') { document.getElementById('fCityList').innerHTML = ''; runFinder(false); } };
   if (random && S.city) runFinder(true);
 }
+let finderRun = 0;
 async function runFinder(random) {
   const city = document.getElementById('fCity').value.trim(), out = document.getElementById('fRes');
+  const list0 = document.getElementById('fCityList'); if (list0) list0.innerHTML = '';
   if (!city) return toast('Вкажіть місто');
-  if (city !== S.city) { S.city = city; save(); }
+  if (city !== S.city) { S.city = city; if (S.cityGeo && S.cityGeo.name !== city) S.cityGeo = null; save(); }
   const wishEl = document.getElementById('fWish'), wish = wishEl ? wishEl.value.trim() : '';
+  const run = ++finderRun;
+  const goBtn = document.getElementById('fGo'); if (goBtn) goBtn.disabled = true;
+  const done = () => { const b = document.getElementById('fGo'); if (b) b.disabled = false; };
   out.innerHTML = `<div class="loading"><i>🐾</i> Шукаю місця в ${esc(city)}...</div>`;
   let geo, cands;
   try { geo = await geocode(city); cands = await osmPlaces(geo, finderCat); }
   catch (e) {
-    out.innerHTML = `<div class="empty">${e.message === 'nocity' ? 'Не знайшов таке місто 🤔 Спробуйте написати інакше.' : 'Не вдалося отримати місця. Перевірте інтернет і спробуйте ще раз.' + (inTG ? '' : '<br><small>У попередньому перегляді інтернет-запити заблоковані — це запрацює в Telegram.</small>')}</div>`;
+    if (run !== finderRun) return; done();
+    out.innerHTML = `<div class="empty">${e.message === 'nocity' ? 'Не знайшов таке місто 🤔 Почніть вводити назву й оберіть зі списку.' : 'Сервер карт зараз не відповідає. Спробуйте ще раз за хвилину.' + (inTG ? '' : '<br><small>У попередньому перегляді інтернет-запити заблоковані — це запрацює в Telegram.</small>')}</div><button class="btn ghost" style="width:100%" onclick="runFinder(${random})">↻ Спробувати ще раз</button>`;
     return;
   }
+  if (run !== finderRun) return;
   const mine = new Set(S.places.map(p => p.title.toLowerCase()));
   cands = shuffle(cands.filter(p => !mine.has(p.name.toLowerCase())));
-  if (!cands.length) { out.innerHTML = `<div class="empty">У цій категорії поруч нічого не знайшов. Спробуйте «✨ Усе».</div>`; return; }
+  if (!cands.length) { done(); out.innerHTML = `<div class="empty">У цій категорії поруч нічого не знайшов. Спробуйте «✨ Усе».</div>`; return; }
   let res, aiNote = '';
   if (random) res = cands.slice(0, 1);
   else if (ONLINE) {
-    out.innerHTML = `<div class="loading"><i>✨</i> AI обирає найкраще з ${cands.length} місць...</div>`;
-    try { res = await aiPick(cands, geo.name, wish); }
-    catch (e) { aiNote = e.message === 'limit' ? 'Ліміт AI на сьогодні вичерпано. Показую випадкові місця.' : 'AI зараз не відповідає. Показую випадкові місця.'; }
+    out.innerHTML = `<div class="loading"><i>✨</i> AI обирає найкраще з ${cands.length} місць...<br><small>зазвичай 5–15 секунд</small></div>`;
+    // місця з фото — першими в списку для AI
+    const ordered = [...cands.filter(p => p.wikidata || p.image || p.commons), ...cands.filter(p => !(p.wikidata || p.image || p.commons))];
+    try { res = await aiPick(ordered, geo.name, wish); }
+    catch (e) {
+      const why = { limit: 'ліміт AI на сьогодні вичерпано', timeout: 'AI думав надто довго', bad_key: 'ключ Gemini на сервері не підходить', no_key: 'на сервері немає ключа Gemini' }[e.message] || 'AI зараз не відповідає';
+      aiNote = `${why[0].toUpperCase() + why.slice(1)} — показую випадкові місця.`;
+    }
+    if (run !== finderRun) return;
     if (!res || !res.length) res = cands.slice(0, 8);
   } else res = cands.slice(0, 8);
+  done();
   finderRes = res; haptic('medium');
+  const gq = p => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + (p.addr ? ', ' + p.addr : '') + ', ' + city);
   out.innerHTML = (aiNote ? `<div class="hint">${aiNote}</div>` : '') + `<div class="lbl">📍 ${esc(geo.name)} · ${random ? 'жереб обрав' : 'знайдено ' + cands.length}</div>` +
-    res.map((p, i) => `<div class="res"><div class="cat">${p.ic} ${esc(p.cat)}</div><div class="tt">${esc(p.name)}</div>${p.addr || p.extra ? `<div class="ds">${esc([p.addr, p.extra].filter(Boolean).join(' · '))}</div>` : ''}${p.why ? `<div class="why">✨ ${esc(p.why)}</div>` : ''}
-      <div class="rb"><button class="btn sm" id="fa${i}" onclick="addFound(${i})">+ До наших місць</button><a class="btn ghost sm" style="text-decoration:none" href="https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=18/${p.lat}/${p.lon}" target="_blank" rel="noopener" onclick="return openLink(this.href)">🗺 Карта</a></div></div>`).join('') +
+    res.map((p, i) => `<div class="res"><div class="res-ph" id="ph${i}">${mapThumbHTML(p.lat, p.lon)}</div>
+      <div class="cat">${p.ic} ${esc(p.cat)}</div><div class="tt">${esc(p.name)}</div>${p.addr || p.extra ? `<div class="ds">${esc([p.addr, p.extra].filter(Boolean).join(' · '))}</div>` : ''}${p.why ? `<div class="why">✨ ${esc(p.why)}</div>` : ''}
+      <div class="rb"><button class="btn sm" id="fa${i}" onclick="addFound(${i})">+ До наших</button><a class="btn ghost sm" style="text-decoration:none" href="${gq(p)}" target="_blank" rel="noopener" onclick="return openLink(this.href)">📷 Фото й відгуки</a></div></div>`).join('') +
     (random ? `<button class="btn ghost" style="width:100%" onclick="runFinder(true)">🎲 Ще раз</button>` : '') +
-    `<p class="sub" style="text-align:center;font-size:11.5px;margin-top:10px">Дані про місця: © учасники OpenStreetMap</p>`;
+    `<p class="sub" style="text-align:center;font-size:11.5px;margin-top:10px">Дані: © учасники OpenStreetMap · карти © CARTO · фото: Wikimedia Commons</p>`;
+  loadPhotos(res, run);
 }
 function addFound(i) {
   const p = finderRes[i]; if (!p) return;
