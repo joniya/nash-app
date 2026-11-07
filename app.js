@@ -624,31 +624,46 @@ async function citySuggest(q) {
 async function geocode(city) {
   const k = city.toLowerCase(); if (geoCache[k]) return geoCache[k];
   if (S.cityGeo && S.cityGeo.name.toLowerCase() === k) return (geoCache[k] = { lat: S.cityGeo.lat, lon: S.cityGeo.lon, name: S.cityGeo.name });
-  let r;
-  try { r = await fetchT('https://photon.komoot.io/api/?limit=1&layer=city&q=' + encodeURIComponent(city), {}, 8000); }
+  // 1) Photon, 2) запасний — Nominatim
+  try {
+    const r = await fetchT('https://photon.komoot.io/api/?limit=1&layer=city&q=' + encodeURIComponent(city), {}, 7000);
+    const f = r.ok ? ((await r.json()).features || [])[0] : null;
+    if (f) { const [lon, lat] = f.geometry.coordinates, p = f.properties || {}; return (geoCache[k] = { lat, lon, name: [p.name, p.country].filter(Boolean).join(', ') }); }
+  } catch (e) {}
+  let j;
+  try { const r = await fetchT('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=uk&q=' + encodeURIComponent(city), {}, 8000); if (!r.ok) throw 0; j = await r.json(); }
   catch (e) { throw new Error('geo'); }
-  if (!r.ok) throw new Error('geo');
-  const j = await r.json(), f = (j.features || [])[0];
-  if (!f) throw new Error('nocity');
-  const [lon, lat] = f.geometry.coordinates, p = f.properties || {};
-  return (geoCache[k] = { lat, lon, name: [p.name, p.country].filter(Boolean).join(', ') });
+  if (!j.length) throw new Error('nocity');
+  return (geoCache[k] = { lat: +j[0].lat, lon: +j[0].lon, name: j[0].display_name.split(',').slice(0, 2).join(',') });
 }
-/* ---- місця з OpenStreetMap: кілька серверів, бо головний буває перевантажений ---- */
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+/* ---- місця з OpenStreetMap: легкий запит у квадраті ~5 км, кілька серверів паралельно — перемагає найшвидший ---- */
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+function osmCacheGet(key) { try { const x = JSON.parse(localStorage.getItem('osm:' + key)); if (x && Date.now() - x.t < 3 * 864e5) return x.list; } catch (e) {} return null; }
+function osmCachePut(key, list) { try { localStorage.setItem('osm:' + key, JSON.stringify({ t: Date.now(), list })); } catch (e) {} }
 async function osmPlaces(geo, cat) {
-  const key = geo.lat.toFixed(3) + ',' + geo.lon.toFixed(3) + ',' + cat; if (osmCache[key]) return osmCache[key];
+  const key = geo.lat.toFixed(3) + ',' + geo.lon.toFixed(3) + ',' + cat;
+  if (osmCache[key]) return osmCache[key];
+  const cached = osmCacheGet(key); if (cached) return (osmCache[key] = cached);
   const qs = cat === 'all' ? Object.values(CATS).flatMap(c => c.q || []) : CATS[cat].q;
-  const around = `(around:6000,${geo.lat},${geo.lon})`;
-  const query = `[out:json][timeout:20];(${qs.map(q => q + '["name"]' + around + ';').join('')});out center 400;`;
-  let j = null;
-  for (const url of OVERPASS) {
+  const dLat = 0.045, dLon = 0.045 / Math.cos(geo.lat * Math.PI / 180);
+  const bbox = [geo.lat - dLat, geo.lon - dLon, geo.lat + dLat, geo.lon + dLon].map(x => x.toFixed(4)).join(',');
+  const query = `[out:json][timeout:15][bbox:${bbox}];(${qs.map(q => q + '["name"];').join('')});out center qt 300;`;
+  const ctrls = OVERPASS.map(() => new AbortController());
+  const tryOne = async (url, i) => {
+    const t = setTimeout(() => ctrls[i].abort(), 18000);
     try {
-      const r = await fetchT(url, { method: 'POST', body: 'data=' + encodeURIComponent(query), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 22000);
-      if (!r.ok) continue;
-      j = await r.json(); break;
-    } catch (e) { /* наступний сервер */ }
-  }
-  if (!j) throw new Error('osm');
+      const r = await fetch(url, { method: 'POST', signal: ctrls[i].signal, body: 'data=' + encodeURIComponent(query), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      if (!r.ok) throw new Error('http');
+      const j = await r.json();
+      if (!j || !Array.isArray(j.elements)) throw new Error('bad');
+      return j;
+    } finally { clearTimeout(t); }
+  };
+  let j;
+  try {
+    j = await Promise.any(OVERPASS.map((u, i) => new Promise(res => setTimeout(res, i * 600)).then(() => tryOne(u, i))));
+  } catch (e) { throw new Error('osm'); }
+  finally { ctrls.forEach(c => { try { c.abort(); } catch (e) {} }); }
   const seen = new Set();
   const list = (j.elements || []).map(e => {
     const t = e.tags || {}, [cl, ic] = TAGCAT(t), lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
@@ -656,6 +671,7 @@ async function osmPlaces(geo, cat) {
     const extra = [t.cuisine && 'кухня: ' + t.cuisine.replace(/;/g, ', '), t.opening_hours && 'години: ' + t.opening_hours, t.description].filter(Boolean).join(' · ');
     return { name: t['name:uk'] || t.name, cat: cl, ic, addr, extra, lat, lon, web: t.website || t['contact:website'] || '', wikidata: t.wikidata || '', commons: t.wikimedia_commons || '', image: t.image || '' };
   }).filter(p => p.name && p.lat && !seen.has(p.name.toLowerCase()) && seen.add(p.name.toLowerCase()));
+  if (list.length) osmCachePut(key, list);
   return (osmCache[key] = list);
 }
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -729,12 +745,12 @@ async function runFinder(random) {
   const run = ++finderRun;
   const goBtn = document.getElementById('fGo'); if (goBtn) goBtn.disabled = true;
   const done = () => { const b = document.getElementById('fGo'); if (b) b.disabled = false; };
-  out.innerHTML = `<div class="loading"><i>🐾</i> Шукаю місця в ${esc(city)}...</div>`;
+  out.innerHTML = `<div class="loading"><i>🐾</i> Шукаю місця в ${esc(city)}...<br><small>зазвичай до 10 секунд</small></div>`;
   let geo, cands;
   try { geo = await geocode(city); cands = await osmPlaces(geo, finderCat); }
   catch (e) {
     if (run !== finderRun) return; done();
-    out.innerHTML = `<div class="empty">${e.message === 'nocity' ? 'Не знайшов таке місто 🤔 Почніть вводити назву й оберіть зі списку.' : 'Сервер карт зараз не відповідає. Спробуйте ще раз за хвилину.' + (inTG ? '' : '<br><small>У попередньому перегляді інтернет-запити заблоковані — це запрацює в Telegram.</small>')}</div><button class="btn ghost" style="width:100%" onclick="runFinder(${random})">↻ Спробувати ще раз</button>`;
+    out.innerHTML = `<div class="empty">${e.message === 'nocity' ? 'Не знайшов таке місто 🤔 Почніть вводити назву й оберіть зі списку.' : e.message === 'geo' ? 'Не вдалося знайти місто на карті — перевірте інтернет і спробуйте ще раз.' : 'Сервери карт зараз перевантажені. Спробуйте ще раз за хвилину.' + (inTG ? '' : '<br><small>У попередньому перегляді інтернет-запити заблоковані — це запрацює в Telegram.</small>')}</div><button class="btn ghost" style="width:100%" onclick="runFinder(${random})">↻ Спробувати ще раз</button>`;
     return;
   }
   if (run !== finderRun) return;
