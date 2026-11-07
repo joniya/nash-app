@@ -706,7 +706,7 @@ function mapThumbHTML(lat, lon) {
   const x = Math.floor(xf), y = Math.floor(yf), px = (xf - x) * 256, py = (yf - y) * 256;
   let tiles = '';
   for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++)
-    tiles += `<img alt="" loading="lazy" src="https://${'abcd'[(x + y + dx + dy) & 3]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x + dx}/${y + dy}.png" style="left:${(dx + 1) * 256}px;top:${(dy + 1) * 256}px" onerror="this.remove()">`;
+    tiles += `<img alt="" loading="lazy" src="https://tile.openstreetmap.org/${z}/${x + dx}/${y + dy}.png" style="left:${(dx + 1) * 256}px;top:${(dy + 1) * 256}px" onerror="this.remove()">`;
   return `<div class="mt" style="left:calc(50% - ${(256 + px).toFixed(0)}px);top:calc(50% - ${(256 + py).toFixed(0)}px)">${tiles}</div><span class="pin">📍</span>`;
 }
 const commonsURL = f => 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(f).replace(/^File:/i, '')) + '?width=640';
@@ -717,22 +717,35 @@ async function loadPhotos(list, run) {
     else if (/^File:/i.test(p.commons)) src = commonsURL(p.commons);
     if (src) setPhoto(i, src, run);
   });
-  const ids = [...new Set(list.filter(p => /^Q\d+$/.test(p.wikidata) && !p.image && !/^File:/i.test(p.commons)).map(p => p.wikidata))];
-  if (!ids.length) return;
-  try {
-    const r = await fetchT(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.slice(0, 50).join('|')}&props=claims&format=json&origin=*`, {}, 8000);
-    const j = await r.json();
-    list.forEach((p, i) => {
-      const f = j.entities?.[p.wikidata]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
-      if (f) setPhoto(i, commonsURL(f), run);
-    });
-  } catch (e) {}
+  const has = new Set();
+  list.forEach((p, i) => { if (/^https:\/\//.test(p.image) || /^File:/i.test(p.commons)) has.add(i); });
+  const ids = [...new Set(list.filter((p, i) => !has.has(i) && /^Q\d+$/.test(p.wikidata)).map(p => p.wikidata))];
+  if (ids.length) {
+    try {
+      const r = await fetchT(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.slice(0, 50).join('|')}&props=claims&format=json&origin=*`, {}, 8000);
+      const j = await r.json();
+      list.forEach((p, i) => {
+        const f = j.entities?.[p.wikidata]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+        if (f) { has.add(i); setPhoto(i, commonsURL(f), run); }
+      });
+    } catch (e) {}
+  }
+  // решта: фото, зроблені поруч із цим місцем (Wikimedia Commons)
+  await Promise.all(list.map(async (p, i) => {
+    if (has.has(i) || run !== finderRun) return;
+    try {
+      const r = await fetchT(`https://commons.wikimedia.org/w/api.php?action=query&list=geosearch&gscoord=${p.lat}|${p.lon}&gsradius=80&gsnamespace=6&gslimit=5&format=json&origin=*`, {}, 7000);
+      const j = await r.json();
+      const f = (j.query?.geosearch || []).find(x => /\.(jpe?g|png|webp)$/i.test(x.title));
+      if (f) setPhoto(i, commonsURL(f.title), run, true);
+    } catch (e) {}
+  }));
 }
-function setPhoto(i, src, run) {
+function setPhoto(i, src, run, near) {
   if (run !== finderRun) return;
   const box = document.getElementById('ph' + i); if (!box) return;
   const img = new Image();
-  img.onload = () => { if (run !== finderRun) return; box.innerHTML = ''; box.classList.add('photo'); box.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; };
+  img.onload = () => { if (run !== finderRun) return; box.innerHTML = near ? '<span class="ph-note">📷 фото поруч</span>' : ''; box.classList.add('photo'); box.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; };
   img.src = src;
 }
 function openFinder(random) {
@@ -795,7 +808,7 @@ async function runFinder(random) {
       <div class="cat">${p.ic} ${esc(p.cat)}</div><div class="tt">${esc(p.name)}</div>${p.addr || p.extra ? `<div class="ds">${esc([p.addr, p.extra].filter(Boolean).join(' · '))}</div>` : ''}${p.why ? `<div class="why">✨ ${esc(p.why)}</div>` : ''}
       <div class="rb"><button class="btn sm" id="fa${i}" onclick="addFound(${i})">+ До наших</button><a class="btn ghost sm" style="text-decoration:none" href="${gq(p)}" target="_blank" rel="noopener" onclick="return openLink(this.href)">📷 Фото й відгуки</a></div></div>`).join('') +
     (random ? `<button class="btn ghost" style="width:100%" onclick="runFinder(true)">🎲 Ще раз</button>` : '') +
-    `<p class="sub" style="text-align:center;font-size:11.5px;margin-top:10px">Дані: © учасники OpenStreetMap · карти © CARTO · фото: Wikimedia Commons</p>`;
+    `<p class="sub" style="text-align:center;font-size:11.5px;margin-top:10px">Дані й карти: © учасники OpenStreetMap · фото: Wikimedia Commons</p>`;
   loadPhotos(res, run);
 }
 function addFound(i) {
