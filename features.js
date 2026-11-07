@@ -52,6 +52,8 @@ const THEMES = { glass: '🫧 Скло', glassdark: '🔮 Скло ніч', autu
 function getTheme() { try { return localStorage.getItem('theme') || (tg && tg.colorScheme === 'dark' ? 'night' : 'autumn'); } catch (e) { return 'autumn'; } }
 function applyTheme(t = getTheme()) {
   document.documentElement.dataset.theme = t;
+  // Telegram для ПК (Windows/Linux) має старий вбудований браузер, який погано малює розмиття — там скло без blur
+  try { document.documentElement.classList.toggle('noblur', !!(tg && /^(tdesktop|unigram)$/.test(tg.platform))); } catch (e) {}
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#FFF8EF';
   try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); tg.setBottomBarColor && tg.setBottomBarColor(bg); } catch (e) {}
 }

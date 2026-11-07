@@ -400,3 +400,9 @@ body.gated nav{display:none}
 @media (prefers-reduced-motion: reduce){:is([data-theme=glass],[data-theme=glassdark]) body::before{animation:none}}
 [data-theme=glassdark] .gi,[data-theme=glassdark] .pet-q button span{filter:saturate(.9) brightness(.55)}
 [data-theme=glassdark] .gi .fe,[data-theme=glassdark] .gi .fe-fb{filter:brightness(1.8)}
+
+/* Скло без розмиття для Telegram на ПК: щільніший фон, жодних backdrop-filter */
+html.noblur *,html.noblur *::before{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.noblur[data-theme=glass]{--card:rgba(255,255,255,.8);--soft:rgba(255,255,255,.75);--soft2:rgba(255,255,255,.62)}
+html.noblur[data-theme=glassdark]{--card:rgba(32,35,58,.88);--soft:rgba(48,52,80,.85);--soft2:rgba(40,44,70,.8)}
+:is([data-theme=glass],[data-theme=glassdark]) nav .center .bub{transform:translateZ(0);will-change:transform}
