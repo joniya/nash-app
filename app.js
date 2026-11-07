@@ -65,7 +65,7 @@ function seed() {
     ],
     shop: [], tasks: [{ id: uid(), title: 'Прибирання на кухні (приклад)', date: '', done: false }],
     recipes: [{ id: uid(), title: 'Карбонара', desc: 'Спагеті, бекон, яйця, пармезан (приклад)' }],
-    wish: [], surprises: [], nudges: [], pets: [], petEvents: [], widgets: {}, qa: {}, weekly: {}, about: { a: {}, b: {} }, photos: {}, onb: {}, qaLevel: 'mix', city: '', goals: [{ id: uid(), emoji: '🐷', title: 'Наша спільна мрія', target: 1000, log: [], done: false, created: Date.now() }]
+    wish: [], surprises: [], nudges: [], pets: [], petEvents: [], kids: [], kidEvents: [], kidGrowth: [], kidMoments: [], widgets: {}, qa: {}, weekly: {}, about: { a: {}, b: {} }, photos: {}, onb: {}, qaLevel: 'mix', city: '', goals: [{ id: uid(), emoji: '🐷', title: 'Наша спільна мрія', target: 1000, log: [], done: false, created: Date.now() }]
   };
 }
 function migrate(s) {
@@ -91,7 +91,7 @@ function migrate(s) {
   return s;
 }
 /* Сповіщення: кожен запис знає, хто його додав (by) і хто вже бачив (seen) */
-const LISTS = ['notes', 'shop', 'tasks', 'recipes', 'wish', 'places', 'events', 'dates', 'trips', 'surprises', 'nudges', 'goals', 'pets', 'petEvents'];
+const LISTS = ['notes', 'shop', 'tasks', 'recipes', 'wish', 'places', 'events', 'dates', 'trips', 'surprises', 'nudges', 'goals', 'pets', 'petEvents', 'kids', 'kidEvents', 'kidGrowth', 'kidMoments'];
 function stamp(s, who) { LISTS.forEach(l => (s[l] || []).forEach(o => { if (!o.seen) { o.by = o.by || who; o.seen = who === 'both' ? ['a', 'b'] : [who]; if (who === 'both') o.by = o.by === 'both' ? 'a' : o.by; } })); }
 let S;
 try { const raw = JSON.parse(localStorage.getItem(KEY)); S = migrate(raw || seed()); stamp(S, 'both'); } catch (e) { S = migrate(seed()); stamp(S, 'both'); }
@@ -127,6 +127,7 @@ function formSheet(title, fields, onSave, btn = 'Зберегти') {
     else if (x.type === 'date') inp = `<input id="f_${x.k}" type="date" value="${esc(x.v || '')}" min="${x.min || MIN_DATE}" max="${x.max || MAX_DATE}">`;
     else if (x.type === 'password') inp = `<input id="f_${x.k}" type="password" autocomplete="off" value="${esc(x.v || '')}" placeholder="${esc(x.ph || '')}">`;
     else if (x.type === 'time') inp = `<input id="f_${x.k}" type="time" value="${esc(x.v || '')}">`;
+    else if (x.type === 'decimal') inp = `<input id="f_${x.k}" type="text" inputmode="decimal" maxlength="8" value="${esc(x.v ?? '')}" placeholder="${esc(x.ph || '')}">`;
     else if (x.type === 'number') inp = `<input id="f_${x.k}" type="number" inputmode="decimal" step="any" value="${esc(x.v ?? '')}" placeholder="${esc(x.ph || '')}">`;
     else inp = `<input id="f_${x.k}" type="text" ${ml} value="${esc(x.v || '')}" placeholder="${esc(x.ph || '')}">`;
     return `<div class="field"><label>${esc(x.l)}</label>${inp}</div>`;
@@ -162,7 +163,7 @@ function itemMenu(list, id, extra = [], onDelete) {
 }
 
 /* ===== Навігація ===== */
-const SUB = { dates: true, trips: true, pet: true };
+const SUB = { dates: true, trips: true, pet: true, kid: true };
 let shopKind = 'food', placeCat = '';
 let tab = 'us', prevTab = 'us', homeSeg = 'shop', placeSeg = 'spont', placeQ = '', recipeQ = '', wishSeg = 'gift', wishWho = null;
 function go(t) { if (SUB[t] && !SUB[tab]) prevTab = tab; if (t !== tab) justSeen.clear(); tab = t; render(); window.scrollTo(0, 0); }
@@ -204,6 +205,7 @@ function vUs() {
   </div>
   ${onboardingHTML()}
   ${petWidgetHTML()}
+  ${kidWidgetHTML()}
   ${S.widgets && S.widgets.memory === false ? '' : memoriesHTML()}
   ${S.widgets && S.widgets.qa === false ? '' : qaCardHTML()}
 
@@ -348,13 +350,14 @@ function vMore() {
     <button class="gcard" onclick="openDeck()"><div class="gi" style="background:#FFF3CF">${fe('Speech balloon', '💬')}</div><b>Картки для розмови</b><small>${QBANK.length} питань, 3 рівні</small></button>
     <button class="gcard" onclick="openIdeas()"><div class="gi" style="background:#FFF0D6">${fe('Light bulb', '💡')}</div><b>Ідеї побачень</b><small>${IDEAS.length} ідей на будь-який вечір</small></button>
     <button class="gcard" onclick="go('pet')"><div class="gi" style="background:#F1E3FF">${fe('Dog face', '🐶')}</div><b>${S.pets.length > 1 ? 'Улюбленці' : 'Улюбленець'}${sb(unseen('petEvents'))}</b><small>${S.pets.length ? esc(S.pets.map(p => p.name).join(', ')) : 'Здоров’я, грумінг, корм'}</small></button>
+    <button class="gcard" onclick="go('kid')"><div class="gi" style="background:#E3F1FF">${fe('Baby', '👶')}</div><b>${S.kids.length > 1 ? 'Діти' : 'Дитина'}${sb(unseen('kidEvents'))}</b><small>${S.kids.length ? esc(S.kids.map(k => k.name).join(', ')) : 'Щеплення, лікарі, ріст'}</small></button>
     <button class="gcard" onclick="openQaHistory()"><div class="gi" style="background:#DCEEFF">${fe('Red question mark', '❓')}</div><b>Наші відповіді</b><small>Питання дня</small></button>
   </div>
 ${goalsHTML()}
   <div class="lbl">Налаштування і підтримка</div>
   <div class="card" style="padding:4px 16px">
     <button class="row" style="width:100%;text-align:left" onclick="openCouple()"><div class="ic">💑</div><div class="tx"><b>Наша пара</b><small>${ONLINE ? 'Запрошення, сповіщення' : 'Партнер, сповіщення'}</small></div>›</button>
-    <button class="row" style="width:100%;text-align:left" onclick="openWidgets()"><div class="ic">🏠</div><div class="tx"><b>Віджети на головній</b><small>Улюбленці, питання дня, спогади</small></div>›</button>
+    <button class="row" style="width:100%;text-align:left" onclick="openWidgets()"><div class="ic">🏠</div><div class="tx"><b>Віджети на головній</b><small>Улюбленці, діти, питання дня, спогади</small></div>›</button>
     <button class="row" style="width:100%;text-align:left" onclick="openThemes()"><div class="ic">🎨</div><div class="tx"><b>Оформлення</b><small>${THEMES[getTheme()]}</small></div>›</button>
     <button class="row" style="width:100%;text-align:left" onclick="openSettings()"><div class="ic">⚙️</div><div class="tx"><b>Налаштування</b><small>Імена, назва, місто</small></div>›</button>
     <button class="row" style="width:100%;text-align:left" onclick="openBackup()"><div class="ic">📦</div><div class="tx"><b>Резервна копія</b><small>Зберегти або відновити всі дані</small></div>›</button>
@@ -1059,6 +1062,7 @@ function openCalendar() {
     ...S.events.map(e => ({ d: ymd(nextOccurrence(e.date, e.yearly)), t: (e.emoji || '🎉') + ' ' + e.title })),
     ...S.tasks.filter(t => t.date && !t.done).map(t => ({ d: t.date, t: '🔁 ' + t.title })),
     ...S.trips.filter(t => t.date).map(t => ({ d: t.date, t: '🧳 ' + (t.title || 'Поїздка') })),
+    ...S.kidEvents.filter(e => e.date && !e.done).map(e => ({ d: e.date, t: (KID_TYPE[e.type]?.[0] || '👶') + ' ' + ((S.kids.find(k => k.id === e.kidId) || {}).name || '') + ': ' + e.title + (e.time ? ' · ' + e.time : '') })),
     ...S.petEvents.filter(e => e.date && !e.done).map(e => ({ d: e.date, t: '🐾 ' + ((S.pets.find(p => p.id === e.petId) || {}).name || '') + ': ' + e.title + (e.time ? ' · ' + e.time : '') }))
   ].filter(x => x.d >= t0).sort((a, b) => a.d.localeCompare(b.d));
   openSheet(`<h3>Календар 📅</h3>${items.length ? `<div class="card" style="padding:4px 16px">${items.map(x => `<div class="row"><div class="tx"><b>${esc(x.t)}</b><small>${fmtS(x.d)}</small></div><span class="pill">${x.d === t0 ? 'сьогодні' : 'через ' + daysBetween(t0, x.d) + ' дн.'}</span></div>`).join('')}</div>` : '<div class="empty">Подій поки немає. Додайте важливі дати на головній, справи з датою або заплановані поїздки.</div>'}<button class="btn" style="width:100%;margin-top:12px" onclick="closeSheet()">Закрити</button>`);
@@ -1078,7 +1082,7 @@ function openSettings() {
 }
 
 /* ===== Рендер ===== */
-const VIEWS = { us: vUs, places: vPlaces, home: vHome, wish: vWish, more: vMore, dates: vDates, trips: vTrips, pet: () => vPet() };
+const VIEWS = { us: vUs, places: vPlaces, home: vHome, wish: vWish, more: vMore, dates: vDates, trips: vTrips, pet: () => vPet(), kid: () => vKid() };
 function render() {
   document.getElementById('logo').innerHTML = '<img src="img/icon.webp" alt="" class="logo-img">' + APP_NAME;
   document.getElementById('hdrAvs').innerHTML = avatarHTML('a', 'av a') + avatarHTML('b', 'av b');

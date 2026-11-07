@@ -55,7 +55,7 @@ function mergeList(b, l, r) {
 }
 
 /* ---- що нового я додав — для сповіщення партнеру в Telegram ---- */
-const EVENT_OF = { notes: 'note', surprises: 'surprise', shop: 'shop', tasks: 'tasks', wish: 'wish', places: 'places', recipes: 'recipes', events: 'events', dates: 'dates', trips: 'trips', petEvents: 'pet' };
+const EVENT_OF = { notes: 'note', surprises: 'surprise', shop: 'shop', tasks: 'tasks', wish: 'wish', places: 'places', recipes: 'recipes', events: 'events', dates: 'dates', trips: 'trips', petEvents: 'pet', kidEvents: 'kid', kidMoments: 'kidm' };
 function diffEvents(base, st) {
   const ev = [], me = S.me, oth = me === 'a' ? 'b' : 'a';
   base = base || {};

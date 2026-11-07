@@ -20,7 +20,7 @@ function petEventsOf(p, all) {
 function whenTxtPet(e) {
   if (!e.date) return e.time || '';
   const d = daysBetween(today(), e.date);
-  const day = d === 0 ? 'Сьогодні' : d === 1 ? 'Завтра' : d === -1 ? 'Вчора' : fmtS(e.date, false);
+  const day = d === 0 ? 'Сьогодні' : d === 1 ? 'Завтра' : d === -1 ? 'Вчора' : fmtS(e.date, e.date.slice(0, 4) !== today().slice(0, 4));
   return day + (e.time ? ', ' + e.time : '');
 }
 function petEventRow(e) {
@@ -172,6 +172,7 @@ function openWidgets() {
   S.widgets = S.widgets || {}; S.onb = S.onb || {};
   const rows = [
     ['pet', '🐾', 'Улюбленці', S.pets.length ? S.pets.map(p => p.name).join(', ') : 'Профіль, події, нагадування', S.widgets.pet !== false],
+    ['kids', '👶', 'Діти', S.kids.length ? S.kids.map(k => k.name).join(', ') : 'Щеплення, лікарі, ріст', S.widgets.kids === true],
     ['qa', '❓', 'Питання дня', 'Відповіді відкриваються обом', S.widgets.qa !== false],
     ['memory', '📸', 'Цього дня', 'Спогади з минулих років', S.widgets.memory !== false],
     ['steps', '👣', 'Перші кроки', 'Підказки для початку', !S.onb[S.me]]
@@ -182,6 +183,7 @@ function openWidgets() {
   document.querySelectorAll('#sheet [data-w]').forEach(b => b.onclick = () => {
     const k = b.dataset.w;
     if (k === 'steps') S.onb[S.me] = !S.onb[S.me];
+    else if (k === 'kids') S.widgets.kids = S.widgets.kids !== true;
     else S.widgets[k] = S.widgets[k] === false ? true : false;
     save(); render(); haptic(); openWidgets();
   });
