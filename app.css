@@ -354,3 +354,9 @@ body.gated nav{display:none}
 .empty-w{display:flex;gap:12px;align-items:center}
 .empty-w b{display:block;font-weight:900}.empty-w small{color:var(--ink2);font-size:13px}
 .empty-w .x{position:absolute;top:8px;right:10px;color:var(--muted);font-size:14px}
+
+.pet-row{display:flex;gap:14px;overflow-x:auto;padding:10px 2px 4px;scrollbar-width:none}
+.pet-row button{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;width:72px}
+.pet-row b{font-size:13px;font-weight:800;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pet-ph.add{font-size:28px;color:var(--tan-d);box-shadow:0 0 0 2px var(--line);background:var(--soft2)}
+.add-chip{border-style:dashed;color:var(--tan-d)}

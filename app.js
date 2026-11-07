@@ -204,8 +204,8 @@ function vUs() {
   </div>
   ${onboardingHTML()}
   ${petWidgetHTML()}
-  ${memoriesHTML()}
-  ${qaCardHTML()}
+  ${S.widgets && S.widgets.memory === false ? '' : memoriesHTML()}
+  ${S.widgets && S.widgets.qa === false ? '' : qaCardHTML()}
 
   <div class="card">
     <div class="sec-t">Як ти сьогодні?</div>
@@ -347,13 +347,14 @@ function vMore() {
     <button class="gcard" onclick="openAbout()"><div class="gi" style="background:#E6F4E1">${fe('Memo', '🗒')}</div><b>Шпаргалка</b><small>Розміри, смаки, дрібниці</small></button>
     <button class="gcard" onclick="openDeck()"><div class="gi" style="background:#FFF3CF">${fe('Speech balloon', '💬')}</div><b>Картки для розмови</b><small>${QBANK.length} питань, 3 рівні</small></button>
     <button class="gcard" onclick="openIdeas()"><div class="gi" style="background:#FFF0D6">${fe('Light bulb', '💡')}</div><b>Ідеї побачень</b><small>${IDEAS.length} ідей на будь-який вечір</small></button>
-    <button class="gcard" onclick="go('pet')"><div class="gi" style="background:#F1E3FF">${fe('Dog face', '🐶')}</div><b>Улюбленець${sb(unseen('petEvents'))}</b><small>${S.pets.length ? esc(S.pets.map(p => p.name).join(', ')) : 'Здоров’я, грумінг, корм'}</small></button>
+    <button class="gcard" onclick="go('pet')"><div class="gi" style="background:#F1E3FF">${fe('Dog face', '🐶')}</div><b>${S.pets.length > 1 ? 'Улюбленці' : 'Улюбленець'}${sb(unseen('petEvents'))}</b><small>${S.pets.length ? esc(S.pets.map(p => p.name).join(', ')) : 'Здоров’я, грумінг, корм'}</small></button>
     <button class="gcard" onclick="openQaHistory()"><div class="gi" style="background:#DCEEFF">${fe('Red question mark', '❓')}</div><b>Наші відповіді</b><small>Питання дня</small></button>
   </div>
 ${goalsHTML()}
   <div class="lbl">Налаштування і підтримка</div>
   <div class="card" style="padding:4px 16px">
     <button class="row" style="width:100%;text-align:left" onclick="openCouple()"><div class="ic">💑</div><div class="tx"><b>Наша пара</b><small>${ONLINE ? 'Запрошення, сповіщення' : 'Партнер, сповіщення'}</small></div>›</button>
+    <button class="row" style="width:100%;text-align:left" onclick="openWidgets()"><div class="ic">🏠</div><div class="tx"><b>Віджети на головній</b><small>Улюбленці, питання дня, спогади</small></div>›</button>
     <button class="row" style="width:100%;text-align:left" onclick="openThemes()"><div class="ic">🎨</div><div class="tx"><b>Оформлення</b><small>${THEMES[getTheme()]}</small></div>›</button>
     <button class="row" style="width:100%;text-align:left" onclick="openSettings()"><div class="ic">⚙️</div><div class="tx"><b>Налаштування</b><small>Імена, назва, місто</small></div>›</button>
     <button class="row" style="width:100%;text-align:left" onclick="openBackup()"><div class="ic">📦</div><div class="tx"><b>Резервна копія</b><small>Зберегти або відновити всі дані</small></div>›</button>

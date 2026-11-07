@@ -26,7 +26,7 @@ function whenTxtPet(e) {
 function petEventRow(e) {
   const late = e.date && e.date < today();
   return `<div class="pet-ev${nw(e)}"><button class="check ${e.done ? 'on' : ''}" onclick="togglePetEvent('${e.id}')">${e.done ? '✓' : ''}</button>
-    <div class="tx" onclick="petEventMenu('${e.id}')"><b>${PET_TYPE[e.type]?.[0] || '🔔'} ${esc(e.title)}</b><small style="${late ? 'color:#D9645A' : ''}">${whenTxtPet(e)}${e.repeat ? ' · 🔁 ' + PET_REPEAT[e.repeat].toLowerCase() : ''}${late ? ' · прострочено' : ''}</small></div></div>`;
+    <div class="tx" onclick="petEventMenu('${e.id}')"><b>${PET_TYPE[e.type]?.[0] || '🔔'} ${S.pets.length > 1 ? esc((S.pets.find(x => x.id === e.petId) || {}).name || '') + ': ' : ''}${esc(e.title)}</b><small style="${late ? 'color:#D9645A' : ''}">${whenTxtPet(e)}${e.repeat ? ' · 🔁 ' + PET_REPEAT[e.repeat].toLowerCase() : ''}${late ? ' · прострочено' : ''}</small></div></div>`;
 }
 
 /* ---- віджет на головній ---- */
@@ -35,6 +35,14 @@ function petWidgetHTML() {
   if (S.widgets.pet === false) return '';
   const p = curPet();
   if (!p) return `<div class="card pet-w empty-w"><button class="x" onclick="hidePetWidget()" aria-label="Прибрати">✕</button><div class="pet-ph">🐾</div><div style="flex:1"><b>Є домашній улюбленець?</b><small>Здоров’я, грумінг, корм і нагадування — в одному місці</small></div><button class="btn sm" onclick="editPet()">Додати</button></div>`;
+  if (S.pets.length > 1) {
+    const evs = S.pets.flatMap(x => petEventsOf(x)).sort((a, b) => ((a.date || '9999') + (a.time || '99')).localeCompare((b.date || '9999') + (b.time || '99'))).slice(0, 3);
+    return `<div class="card pet-w">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="lbl" style="margin:0">Наші улюбленці 🐾</div><button class="more" onclick="petWidgetMenu()">⋯</button></div>
+      <div class="pet-row">${S.pets.map(x => `<button onclick="petSel='${x.id}';petFilter='';go('pet')">${petPhoto(x)}<b>${esc(x.name)}</b></button>`).join('')}<button onclick="editPet()"><div class="pet-ph add">+</div><b>Додати</b></button></div>
+      ${evs.length ? `<div class="lbl" style="margin:12px 0 4px">Ближчі події</div>${evs.map(petEventRow).join('')}` : ''}
+    </div>`;
+  }
   const evs = petEventsOf(p).slice(0, 2), k = PET_KIND[p.kind || 'dog'];
   return `<div class="card pet-w">
     <div class="pet-w-top" onclick="go('pet')">${petPhoto(p)}<div style="flex:1;min-width:0"><div class="lbl" style="margin:0">${k[1]} ${k[0]}</div><b class="pet-name">${esc(p.name)} 💜</b><small>${esc(petSub(p))}</small></div><button class="more" onclick="event.stopPropagation();petWidgetMenu()">⋯</button></div>
@@ -42,11 +50,12 @@ function petWidgetHTML() {
     ${evs.length ? `<div class="lbl" style="margin:12px 0 4px">Ближчі події</div>${evs.map(petEventRow).join('')}` : `<button class="link-btn" onclick="addPetEvent()">+ Додати першу подію (таблетка, грумінг, корм…)</button>`}
   </div>`;
 }
-function hidePetWidget() { S.widgets = S.widgets || {}; S.widgets.pet = false; save(); render(); toast('Віджет прибрано. Повернути: Ще → Улюбленець'); }
+function hidePetWidget() { S.widgets = S.widgets || {}; S.widgets.pet = false; save(); render(); toast('Віджет прибрано. Повернути: Ще → Віджети на головній'); }
 function petWidgetMenu() {
   openSheet(`<h3>Віджет улюбленця</h3>
     <button class="btn ghost" style="width:100%;margin-bottom:8px" onclick="closeSheet();go('pet')">Відкрити розділ</button>
     <button class="btn ghost" style="width:100%;margin-bottom:8px" onclick="closeSheet();addPetEvent()">+ Додати подію</button>
+    <button class="btn ghost" style="width:100%;margin-bottom:8px" onclick="closeSheet();editPet()">🐾 Додати ще улюбленця</button>
     <button class="btn" style="width:100%;background:#D9645A" onclick="closeSheet();hidePetWidget()">Прибрати з головної</button>`);
 }
 
@@ -55,13 +64,13 @@ function vPet() {
   const p = curPet();
   if (!p) return `<div class="backline"><button onclick="goBack()">‹ Назад</button></div>
     <h1>Наш улюбленець 🐾</h1><p class="sub">Здоров’я, грумінг, корм і нагадування для вашої тваринки — спільно на двох.</p>
-    <div class="empty">${BEAGLE}Додайте свого улюбленця, щоб почати</div><button class="btn" style="width:100%;margin-top:12px" onclick="editPet()">+ Додати улюбленця</button>`;
+    <div class="empty">${BEAGLE}Додайте свого улюбленця (або кількох), щоб почати</div><button class="btn" style="width:100%;margin-top:12px" onclick="editPet()">+ Додати улюбленця</button>`;
   const k = PET_KIND[p.kind || 'dog'], evs = petEventsOf(p, true).filter(e => !petFilter || e.type === petFilter);
   const open = evs.filter(e => !e.done), done = evs.filter(e => e.done).slice(-10).reverse();
   S.widgets = S.widgets || {};
   return `<div class="backline"><button onclick="goBack()">‹ Назад</button></div>
-  <div class="page-head"><div><h1>${k[1]} ${k[0]}</h1></div><button class="fab" onclick="addPetEvent()">+</button></div>
-  ${S.pets.length > 1 ? `<div class="chips">${S.pets.map(x => `<button class="chip ${x.id === p.id ? 'on' : ''}" onclick="petSel='${x.id}';render()">${PET_KIND[x.kind || 'dog'][0]} ${esc(x.name)}</button>`).join('')}<button class="chip" onclick="editPet()">+ Ще</button></div>` : ''}
+  <div class="page-head"><div><h1>${S.pets.length > 1 ? 'Наші улюбленці 🐾' : k[1] + ' ' + k[0]}</h1></div><button class="fab" onclick="addPetEvent()">+</button></div>
+  <div class="chips">${S.pets.map(x => `<button class="chip ${x.id === p.id ? 'on' : ''}" onclick="petSel='${x.id}';render()">${PET_KIND[x.kind || 'dog'][0]} ${esc(x.name)}</button>`).join('')}<button class="chip add-chip" onclick="editPet()">+ Додати улюбленця</button></div>
   <div class="card pet-card">
     <label class="pet-ph big" ${p.photo ? `style="background-image:url('${p.photo}')"` : ''}>${p.photo ? '' : k[0]}<span class="cam">📷</span><input type="file" accept="image/*" style="display:none" onchange="setPetPhoto(this,'${p.id}')"></label>
     <div style="flex:1;min-width:0"><b class="pet-name" style="font-size:24px">${esc(p.name)} 💜</b><small>${esc(petSub(p)) || 'Додайте породу й вагу'}</small>${p.notes ? `<div class="ds" style="margin-top:6px">${esc(p.notes)}</div>` : ''}</div>
@@ -156,4 +165,24 @@ function togglePetEvent(id) {
 function petEventMenu(id) {
   const e = S.petEvents.find(x => x.id === id); if (!e) return;
   itemMenu('petEvents', id, [['✎ Редагувати', () => { addPetEvent(e); return 'keep'; }]]);
+}
+
+/* ---- віджети на головній: що показувати ---- */
+function openWidgets() {
+  S.widgets = S.widgets || {}; S.onb = S.onb || {};
+  const rows = [
+    ['pet', '🐾', 'Улюбленці', S.pets.length ? S.pets.map(p => p.name).join(', ') : 'Профіль, події, нагадування', S.widgets.pet !== false],
+    ['qa', '❓', 'Питання дня', 'Відповіді відкриваються обом', S.widgets.qa !== false],
+    ['memory', '📸', 'Цього дня', 'Спогади з минулих років', S.widgets.memory !== false],
+    ['steps', '👣', 'Перші кроки', 'Підказки для початку', !S.onb[S.me]]
+  ];
+  openSheet(`<h3>Віджети на головній 🏠</h3><p class="sub">Оберіть, що показувати на вкладці «Ми».</p>
+    <div class="card" style="padding:4px 16px">${rows.map(([k, ic, t, sub, on]) => `<button class="row" style="width:100%;text-align:left" data-w="${k}"><div class="ic">${ic}</div><div class="tx"><b>${t}</b><small>${esc(sub)}</small></div><span class="switch ${on ? 'on' : ''}"></span></button>`).join('')}</div>
+    <button class="btn" style="width:100%" onclick="closeSheet()">Готово</button>`);
+  document.querySelectorAll('#sheet [data-w]').forEach(b => b.onclick = () => {
+    const k = b.dataset.w;
+    if (k === 'steps') S.onb[S.me] = !S.onb[S.me];
+    else S.widgets[k] = S.widgets[k] === false ? true : false;
+    save(); render(); haptic(); openWidgets();
+  });
 }
