@@ -63,12 +63,13 @@ function vBudget() {
   <div class="card bud-total">
     <div class="lbl" style="margin:0">Загальний залишок${budAll || m === ym() ? '' : ' на кінець місяця'}</div>
     <div class="bud-big ${bal < 0 ? 'neg' : ''}">${bc(bal)}</div>
-    ${carry ? `<div class="hint" style="margin:-8px 0 10px">з них ${bc(carry)} — з попередніх місяців</div>` : ''}
+    ${carry ? `<div class="hint" style="margin:-8px 0 6px">з них ${bc(carry)} — з попередніх місяців</div>` : ''}
+    ${pl > 0 ? `<div class="hint" style="margin:${carry ? 0 : -8}px 0 10px">Якщо оплатити всі плани, залишиться <b class="${after < 0 ? 'neg' : ''}">${bc(after)}</b></div>` : ''}
     <div class="bud-grid">
       <div><span>⬆️ Надійшло${budAll ? '' : ' за місяць'}</span><b class="in">${bc(inc)}</b></div>
       <div><span>⬇️ Витрачено${budAll ? '' : ' за місяць'}</span><b>${bc(sp)}</b></div>
-      <div><span>🕒 Заплановано</span><b>${bc(pl)}${noSum ? `<small> +${noSum} без суми</small>` : ''}</b></div>
-      <div><span>🧮 Після планів</span><b class="${after < 0 ? 'neg' : ''}">${bc(after)}</b></div>
+      <div><span>🕒 Заплановано</span><b>${planned.length} ${plural(planned.length, 'подія', 'події', 'подій')}${noSum ? `<small> · ${noSum} без суми</small>` : ''}</b></div>
+      <div><span>🧮 Після планів</span><b class="${pl > 0 ? 'neg' : ''}">${pl > 0 ? '−' + bc(pl) : bc(0)}</b></div>
     </div>
     <div class="bud-btns"><button class="btn ghost" onclick="budAdd('in')">＋ Надходження</button><button class="btn" onclick="budAdd('out')">＋ Витрата</button></div>
   </div>
