@@ -65,7 +65,7 @@ function seed() {
     ],
     shop: [], tasks: [{ id: uid(), title: 'Прибирання на кухні (приклад)', date: '', done: false }],
     recipes: [{ id: uid(), title: 'Карбонара', desc: 'Спагеті, бекон, яйця, пармезан (приклад)' }],
-    wish: [], surprises: [], nudges: [], pets: [], petEvents: [], kids: [], kidEvents: [], kidGrowth: [], kidMoments: [], widgets: {}, qa: {}, weekly: {}, about: { a: {}, b: {} }, photos: {}, onb: {}, qaLevel: 'mix', city: '', goals: [{ id: uid(), emoji: '🐷', title: 'Наша спільна мрія', target: 1000, log: [], done: false, created: Date.now() }]
+    wish: [], surprises: [], nudges: [], pets: [], petEvents: [], kids: [], kidEvents: [], kidGrowth: [], kidMoments: [], budget: [], widgets: {}, qa: {}, weekly: {}, about: { a: {}, b: {} }, photos: {}, onb: {}, qaLevel: 'mix', city: '', goals: [{ id: uid(), emoji: '🐷', title: 'Наша спільна мрія', target: 1000, log: [], done: false, created: Date.now() }]
   };
 }
 function migrate(s) {
@@ -91,7 +91,7 @@ function migrate(s) {
   return s;
 }
 /* Сповіщення: кожен запис знає, хто його додав (by) і хто вже бачив (seen) */
-const LISTS = ['notes', 'shop', 'tasks', 'recipes', 'wish', 'places', 'events', 'dates', 'trips', 'surprises', 'nudges', 'goals', 'pets', 'petEvents', 'kids', 'kidEvents', 'kidGrowth', 'kidMoments'];
+const LISTS = ['notes', 'shop', 'tasks', 'recipes', 'wish', 'places', 'events', 'dates', 'trips', 'surprises', 'nudges', 'goals', 'pets', 'petEvents', 'kids', 'kidEvents', 'kidGrowth', 'kidMoments', 'budget'];
 function stamp(s, who) { LISTS.forEach(l => (s[l] || []).forEach(o => { if (!o.seen) { o.by = o.by || who; o.seen = who === 'both' ? ['a', 'b'] : [who]; if (who === 'both') o.by = o.by === 'both' ? 'a' : o.by; } })); }
 let S;
 try { const raw = JSON.parse(localStorage.getItem(KEY)); S = migrate(raw || seed()); stamp(S, 'both'); } catch (e) { S = migrate(seed()); stamp(S, 'both'); }
@@ -130,7 +130,8 @@ function formSheet(title, fields, onSave, btn = 'Зберегти') {
     else if (x.type === 'decimal') inp = `<input id="f_${x.k}" type="text" inputmode="decimal" maxlength="8" value="${esc(x.v ?? '')}" placeholder="${esc(x.ph || '')}">`;
     else if (x.type === 'number') inp = `<input id="f_${x.k}" type="number" inputmode="decimal" step="any" value="${esc(x.v ?? '')}" placeholder="${esc(x.ph || '')}">`;
     else inp = `<input id="f_${x.k}" type="text" ${ml} value="${esc(x.v || '')}" placeholder="${esc(x.ph || '')}">`;
-    return `<div class="field"><label>${esc(x.l)}</label>${inp}</div>`;
+    const chips = x.chips ? `<div class="chips f-chips">${x.chips.map(([val, lab]) => `<button type="button" class="chip ${String(x.v || '') === val ? 'on' : ''}" onclick="const i=document.getElementById('f_${x.k}');i.value=this.dataset.v;this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this));haptic()" data-v="${esc(val)}">${esc(lab)}</button>`).join('')}</div>` : '';
+    return `<div class="field"><label>${esc(x.l)}</label>${inp}${chips}</div>`;
   }).join('');
   openSheet(`<h3>${esc(title)}</h3>${f}<div class="acts"><button class="btn ghost" onclick="closeSheet()">Скасувати</button><button class="btn" id="f_save">${btn}</button></div>`);
   document.getElementById('f_save').onclick = () => {
@@ -163,7 +164,7 @@ function itemMenu(list, id, extra = [], onDelete) {
 }
 
 /* ===== Навігація ===== */
-const SUB = { dates: true, trips: true, pet: true, kid: true };
+const SUB = { dates: true, trips: true, pet: true, kid: true, budget: true };
 let shopKind = 'food', placeCat = '';
 let tab = 'us', prevTab = 'us', homeSeg = 'shop', placeSeg = 'spont', placeQ = '', recipeQ = '', wishSeg = 'gift', wishWho = null;
 function go(t) { if (SUB[t] && !SUB[tab]) prevTab = tab; if (t !== tab) justSeen.clear(); tab = t; render(); window.scrollTo(0, 0); }
@@ -352,6 +353,7 @@ function vMore() {
     <button class="gcard" onclick="openAbout()"><div class="gi" style="background:#E6F4E1">${fe('Memo', '🗒')}</div><b>Шпаргалка</b><small>Розміри, смаки, дрібниці</small></button>
     <button class="gcard" onclick="openDeck()"><div class="gi" style="background:#FFF3CF">${fe('Speech balloon', '💬')}</div><b>Картки для розмови</b><small>${QBANK.length} питань, 3 рівні</small></button>
     <button class="gcard" onclick="openIdeas()"><div class="gi" style="background:#FFF0D6">${fe('Light bulb', '💡')}</div><b>Ідеї побачень</b><small>${IDEAS.length} ідей на будь-який вечір</small></button>
+    <button class="gcard" onclick="go('budget')"><div class="gi" style="background:#E6F4E1">${fe('Money bag', '💰')}</div><b>Бюджет</b><small>${esc(budgetSub())}</small></button>
     <button class="gcard" onclick="go('pet')"><div class="gi" style="background:#F1E3FF">${fe('Dog face', '🐶')}</div><b>${S.pets.length > 1 ? 'Улюбленці' : 'Улюбленець'}${sb(unseen('petEvents'))}</b><small>${S.pets.length ? esc(S.pets.map(p => p.name).join(', ')) : 'Здоров’я, грумінг, корм'}</small></button>
     <button class="gcard" onclick="go('kid')"><div class="gi" style="background:#E3F1FF">${fe('Baby', '👶')}</div><b>${S.kids.length > 1 ? 'Діти' : 'Дитина'}${sb(unseen('kidEvents'))}</b><small>${S.kids.length ? esc(S.kids.map(k => k.name).join(', ')) : 'Щеплення, лікарі, ріст'}</small></button>
     <button class="gcard" onclick="openQaHistory()"><div class="gi" style="background:#DCEEFF">${fe('Red question mark', '❓')}</div><b>Наші відповіді</b><small>Питання дня</small></button>
@@ -1086,7 +1088,7 @@ function openSettings() {
 }
 
 /* ===== Рендер ===== */
-const VIEWS = { us: vUs, places: vPlaces, home: vHome, wish: vWish, more: vMore, dates: vDates, trips: vTrips, pet: () => vPet(), kid: () => vKid() };
+const VIEWS = { us: vUs, places: vPlaces, home: vHome, wish: vWish, more: vMore, dates: vDates, trips: vTrips, pet: () => vPet(), kid: () => vKid(), budget: () => vBudget() };
 function render() {
   document.getElementById('logo').innerHTML = '<img src="img/icon.webp" alt="" class="logo-img">' + APP_NAME;
   document.getElementById('hdrAvs').innerHTML = avatarHTML('a', 'av a') + avatarHTML('b', 'av b');

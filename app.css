@@ -457,3 +457,28 @@ body.sheet-open nav,body.sheet-open::after,body.gated::after{display:none}
 [data-theme=glassdark] nav::before{background:rgba(22,24,40,.98)!important}
 .thumb.tall{height:88px;width:62px}
 .poster{width:78px;height:112px;flex-shrink:0;border-radius:12px;background:var(--soft) center/cover no-repeat;display:grid;place-items:center;font-size:26px;border:1px solid var(--line)}
+
+/* бюджет */
+.f-chips{flex-wrap:wrap;margin-top:8px;gap:6px}.f-chips .chip{padding:6px 10px;font-size:13px}
+.bud-nav{display:flex;align-items:center;gap:8px;margin:4px 0 12px}
+.bud-nav>button:not(.chip){width:38px;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:20px;font-weight:800;color:var(--ink)}
+.bud-nav>button:disabled{opacity:.35}
+.bud-nav b{flex:1;text-align:center;font-size:17px}
+.bud-total{padding:18px}
+.bud-big{font-size:34px;font-weight:900;margin:2px 0 12px;letter-spacing:-.5px}
+.bud-big.neg,.bud-grid b.neg{color:#D9645A}
+.bud-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bud-grid div{background:var(--soft);border-radius:14px;padding:10px 12px;min-width:0}
+.bud-grid span{display:block;font-size:12.5px;color:var(--muted);font-weight:700}
+.bud-grid b{font-size:16px}.bud-grid b small{font-size:11px;color:var(--muted);font-weight:700}
+.bud-grid b.in,.bud-sum.in{color:#3BA55C}
+.bud-btns{display:flex;gap:8px;margin-top:12px}.bud-btns .btn{flex:1}
+.bud-row{cursor:pointer}
+.bud-r{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.bud-sum{font-size:15px;white-space:nowrap}
+.btn.sm.bud-paid{padding:6px 10px;font-size:12.5px}
+.bud-cat{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin:8px 0}
+.bud-cat span{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bud-cat .bar{grid-column:1/-1;height:8px;border-radius:6px;background:var(--soft);overflow:hidden}
+.bud-cat .bar i{display:block;height:100%;background:var(--tan);border-radius:6px}
+.bud-btns .btn{padding:12px 6px;font-size:14.5px;white-space:nowrap}
