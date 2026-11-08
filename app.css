@@ -482,3 +482,19 @@ body.sheet-open nav,body.sheet-open::after,body.gated::after{display:none}
 .bud-cat .bar{grid-column:1/-1;height:8px;border-radius:6px;background:var(--soft);overflow:hidden}
 .bud-cat .bar i{display:block;height:100%;background:var(--tan);border-radius:6px}
 .bud-btns .btn{padding:12px 6px;font-size:14.5px;white-space:nowrap}
+/* «Ще»: згорнуті розділи */
+.more-toggle{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;margin-bottom:12px}
+.mt-icons{display:flex;flex-shrink:0}
+.mt-icons .gi{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:16px;margin-left:-10px;border:2px solid var(--card-s,#fff);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.mt-icons .gi:first-child{margin-left:0}
+.mt-icons .gi img{width:20px!important;height:20px!important}
+.mt-tx{flex:1;min-width:0}.mt-tx b{display:block;font-weight:900;font-size:16px}.mt-tx small{display:block;color:var(--ink2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt-chev{font-size:24px;color:var(--ink2);transition:transform .2s;font-weight:800}
+.more-toggle.open .mt-chev{transform:rotate(90deg)}
+.grid4.compact{grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:-4px}
+.grid4.compact .gcard{padding:12px 8px;text-align:center}
+.grid4.compact .gcard .gi{width:38px;height:38px;margin:0 auto 6px;font-size:18px}
+.grid4.compact .gcard .gi img{width:24px!important;height:24px!important}
+.grid4.compact .gcard b{font-size:13px;line-height:1.2}
+.grid4.compact .gcard small{display:none}
+.bud-card .goal-tt b .neg{color:#D9645A}

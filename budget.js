@@ -65,6 +65,7 @@ function vBudget() {
     <div class="bud-big ${bal < 0 ? 'neg' : ''}">${bc(bal)}</div>
     ${carry ? `<div class="hint" style="margin:-8px 0 6px">з них ${bc(carry)} — з попередніх місяців</div>` : ''}
     ${pl > 0 ? `<div class="hint" style="margin:${carry ? 0 : -8}px 0 10px">Якщо оплатити всі плани, залишиться <b class="${after < 0 ? 'neg' : ''}">${bc(after)}</b></div>` : ''}
+    ${inc > 0 || sp > 0 ? `<div class="progress" style="margin-top:0"><div style="width:${inc > 0 ? Math.min(100, Math.round(sp / inc * 100)) : 100}%;${inc > 0 && sp / inc < .9 ? '' : 'background:#D9645A'}"></div></div><div class="goal-sum" style="margin-bottom:12px"><span>Витрачено <b>${bc(sp)}</b> з ${bc(inc)}</span><span>${inc > 0 ? Math.round(sp / inc * 100) + '%' : ''}</span></div>` : ''}
     <div class="bud-grid">
       <div><span>⬆️ Надійшло${budAll ? '' : ' за місяць'}</span><b class="in">${bc(inc)}</b></div>
       <div><span>⬇️ Витрачено${budAll ? '' : ' за місяць'}</span><b>${bc(sp)}</b></div>
@@ -145,4 +146,35 @@ function budNextRepeat(x) {
 }
 function budCurPick() {
   formSheet('Валюта бюджету', [{ k: 'c', l: 'Валюта', type: 'select', v: budCur(), opts: Object.entries(CUR).map(([k, c]) => [k, c.l]) }], v => { S.budgetCur = v.c; }, 'Зберегти');
+}
+
+/* ---- «Ще»: розділи згорнуті в одну картку ---- */
+let moreOpen = (() => { try { return localStorage.getItem('moreOpen') === '1'; } catch (e) { return false; } })();
+function toggleMore() { moreOpen = !moreOpen; try { localStorage.setItem('moreOpen', moreOpen ? '1' : '0'); } catch (e) {} haptic(); render(); }
+function moreSections(tiles) {
+  const icons = tiles.map(t => (t.match(/<div class="gi"[^>]*>[\s\S]*?<\/div>/) || [''])[0]);
+  const names = tiles.map(t => ((t.match(/<b>([\s\S]*?)<\/b>/) || ['', ''])[1]).replace(/<[^>]+>/g, '').replace(/\d+$/, '').trim());
+  const badges = tiles.reduce((n, t) => n + (+(t.match(/class="sbadge">(\d+)/) || [0, 0])[1]), 0);
+  return `<button class="card more-toggle ${moreOpen ? 'open' : ''}" onclick="toggleMore()">
+      <div class="mt-icons">${icons.slice(0, 4).join('')}</div>
+      <div class="mt-tx"><b>Розділи${sb(badges)}</b><small>${moreOpen ? 'Натисніть, щоб згорнути' : names.length + ' ' + plural(names.length, 'розділ', 'розділи', 'розділів') + ' · натисніть, щоб відкрити'}</small></div>
+      <span class="mt-chev">›</span></button>
+    ${moreOpen ? `<div class="grid4 compact">${tiles.join('')}</div>` : ''}`;
+}
+
+/* ---- «Ще»: бюджет карткою, як скарбничка ---- */
+function budgetCardHTML() {
+  const m = ym(), mon = BUD_MONTHS[+m.slice(5, 7) - 1];
+  const inc = sumOf(S.budget.filter(x => x.kind === 'in' && ym(x.date) === m));
+  const sp = sumOf(S.budget.filter(x => x.kind === 'out' && x.paid && ym(x.paidAt || x.date) === m));
+  const bal = Math.round((sumOf(S.budget.filter(x => x.kind === 'in' && x.date <= today())) - sumOf(S.budget.filter(x => x.kind === 'out' && x.paid))) * 100) / 100;
+  const plans = S.budget.filter(x => x.kind === 'out' && !x.paid && ym(x.date) <= m), pl = sumOf(plans);
+  const pct = inc > 0 ? Math.min(100, Math.round(sp / inc * 100)) : (sp > 0 ? 100 : 0);
+  return `<div class="goals-head"><div class="lbl" style="margin:0">💸 Бюджет</div><button class="btn sm" onclick="go('budget')">Відкрити</button></div>
+  <div class="card goal bud-card">
+    <div class="goal-top" onclick="go('budget')" style="cursor:pointer"><div class="goal-em">💰</div><div class="goal-tt"><b>Залишок: <span class="${bal < 0 ? 'neg' : ''}">${bc(bal)}</span></b><small>${plans.length ? 'Заплановано ' + plans.length + ' ' + plural(plans.length, 'витрату', 'витрати', 'витрат') + (pl ? ' на ' + bc(pl) : '') : 'Немає запланованих витрат'}</small></div><span class="more">›</span></div>
+    <div class="progress"><div style="width:${pct}%;${pct >= 90 ? 'background:#D9645A' : ''}"></div></div>
+    <div class="goal-sum"><span>${mon}: <b>${bc(sp)}</b> з ${bc(inc)}</span><span>${inc > 0 ? pct + '%' : ''}</span></div>
+    <div class="goal-btns"><button class="btn" style="flex:1" onclick="budAdd('in')">+ Надійшло</button><button class="btn ghost" style="flex:1" onclick="budAdd('out')">− Витрата</button></div>
+  </div>`;
 }

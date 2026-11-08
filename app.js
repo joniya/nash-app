@@ -344,20 +344,19 @@ function vWish() {
 function vMore() {
   return `
   <h1>Ще</h1><p class="sub">Інші розділи додатка.</p>
-  <div class="lbl">Розділи</div>
-  <div class="grid4">
-    <button class="gcard" onclick="go('dates')"><div class="gi" style="background:#FDE6E4">${fe('Yellow heart', '💛')}</div><b>Побачення${sb(unseen('dates'))}</b><small>${S.dates.length} · де були і як</small></button>
-    <button class="gcard" onclick="go('trips')"><div class="gi" style="background:#DCEEFF">${fe('Luggage', '🧳')}</div><b>Подорожі${sb(unseen('trips'))}</b><small>${S.trips.length} · напрямки й бюджет</small></button>
-    <button class="gcard" onclick="openCalendar()"><div class="gi" style="background:#FFE3DC">${fe('Spiral calendar', '📅')}</div><b>Календар</b><small>Усі зустрічі й події</small></button>
-    <button class="gcard" onclick="openWeeklyHistory()"><div class="gi" style="background:#F1E3FF">${fe('Two hearts', '💞')}</div><b>Чек-ін пари</b><small>Як минув ваш тиждень</small></button>
-    <button class="gcard" onclick="openAbout()"><div class="gi" style="background:#E6F4E1">${fe('Memo', '🗒')}</div><b>Шпаргалка</b><small>Розміри, смаки, дрібниці</small></button>
-    <button class="gcard" onclick="openDeck()"><div class="gi" style="background:#FFF3CF">${fe('Speech balloon', '💬')}</div><b>Картки для розмови</b><small>${QBANK.length} питань, 3 рівні</small></button>
-    <button class="gcard" onclick="openIdeas()"><div class="gi" style="background:#FFF0D6">${fe('Light bulb', '💡')}</div><b>Ідеї побачень</b><small>${IDEAS.length} ідей на будь-який вечір</small></button>
-    <button class="gcard" onclick="go('budget')"><div class="gi" style="background:#E6F4E1">${fe('Money bag', '💰')}</div><b>Бюджет</b><small>${esc(budgetSub())}</small></button>
-    <button class="gcard" onclick="go('pet')"><div class="gi" style="background:#F1E3FF">${fe('Dog face', '🐶')}</div><b>${S.pets.length > 1 ? 'Улюбленці' : 'Улюбленець'}${sb(unseen('petEvents'))}</b><small>${S.pets.length ? esc(S.pets.map(p => p.name).join(', ')) : 'Здоров’я, грумінг, корм'}</small></button>
-    <button class="gcard" onclick="go('kid')"><div class="gi" style="background:#E3F1FF">${fe('Baby', '👶')}</div><b>${S.kids.length > 1 ? 'Діти' : 'Дитина'}${sb(unseen('kidEvents'))}</b><small>${S.kids.length ? esc(S.kids.map(k => k.name).join(', ')) : 'Щеплення, лікарі, ріст'}</small></button>
-    <button class="gcard" onclick="openQaHistory()"><div class="gi" style="background:#DCEEFF">${fe('Red question mark', '❓')}</div><b>Наші відповіді</b><small>Питання дня</small></button>
-  </div>
+  ${moreSections([
+    `<button class="gcard" onclick="go('dates')"><div class="gi" style="background:#FDE6E4">${fe('Yellow heart', '💛')}</div><b>Побачення${sb(unseen('dates'))}</b><small>${S.dates.length} · де були і як</small></button>`,
+    `<button class="gcard" onclick="go('trips')"><div class="gi" style="background:#DCEEFF">${fe('Luggage', '🧳')}</div><b>Подорожі${sb(unseen('trips'))}</b><small>${S.trips.length} · напрямки й бюджет</small></button>`,
+    `<button class="gcard" onclick="openCalendar()"><div class="gi" style="background:#FFE3DC">${fe('Spiral calendar', '📅')}</div><b>Календар</b><small>Усі зустрічі й події</small></button>`,
+    `<button class="gcard" onclick="openWeeklyHistory()"><div class="gi" style="background:#F1E3FF">${fe('Two hearts', '💞')}</div><b>Чек-ін пари</b><small>Як минув ваш тиждень</small></button>`,
+    `<button class="gcard" onclick="openAbout()"><div class="gi" style="background:#E6F4E1">${fe('Memo', '🗒')}</div><b>Шпаргалка</b><small>Розміри, смаки, дрібниці</small></button>`,
+    `<button class="gcard" onclick="openDeck()"><div class="gi" style="background:#FFF3CF">${fe('Speech balloon', '💬')}</div><b>Картки для розмови</b><small>${QBANK.length} питань, 3 рівні</small></button>`,
+    `<button class="gcard" onclick="openIdeas()"><div class="gi" style="background:#FFF0D6">${fe('Light bulb', '💡')}</div><b>Ідеї побачень</b><small>${IDEAS.length} ідей на будь-який вечір</small></button>`,
+    `<button class="gcard" onclick="go('pet')"><div class="gi" style="background:#F1E3FF">${fe('Dog face', '🐶')}</div><b>${S.pets.length > 1 ? 'Улюбленці' : 'Улюбленець'}${sb(unseen('petEvents'))}</b><small>${S.pets.length ? esc(S.pets.map(p => p.name).join(', ')) : 'Здоров’я, грумінг, корм'}</small></button>`,
+    `<button class="gcard" onclick="go('kid')"><div class="gi" style="background:#E3F1FF">${fe('Baby', '👶')}</div><b>${S.kids.length > 1 ? 'Діти' : 'Дитина'}${sb(unseen('kidEvents'))}</b><small>${S.kids.length ? esc(S.kids.map(k => k.name).join(', ')) : 'Щеплення, лікарі, ріст'}</small></button>`,
+    `<button class="gcard" onclick="openQaHistory()"><div class="gi" style="background:#DCEEFF">${fe('Red question mark', '❓')}</div><b>Наші відповіді</b><small>Питання дня</small></button>`
+  ])}
+${budgetCardHTML()}
 ${goalsHTML()}
   <div class="lbl">Налаштування і підтримка</div>
   <div class="card" style="padding:4px 16px">
