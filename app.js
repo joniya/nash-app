@@ -127,7 +127,7 @@ function formSheet(title, fields, onSave, btn = 'Зберегти') {
     else if (x.type === 'date') inp = `<input id="f_${x.k}" type="date" value="${esc(x.v || '')}" min="${x.min || MIN_DATE}" max="${x.max || MAX_DATE}">`;
     else if (x.type === 'password') inp = `<input id="f_${x.k}" type="password" autocomplete="off" value="${esc(x.v || '')}" placeholder="${esc(x.ph || '')}">`;
     else if (x.type === 'time') inp = `<input id="f_${x.k}" type="time" value="${esc(x.v || '')}">`;
-    else if (x.type === 'decimal') inp = `<input id="f_${x.k}" type="text" inputmode="decimal" maxlength="8" value="${esc(x.v ?? '')}" placeholder="${esc(x.ph || '')}">`;
+    else if (x.type === 'decimal') inp = `<input id="f_${x.k}" type="text" inputmode="decimal" maxlength="14" value="${esc(x.v ?? '')}" placeholder="${esc(x.ph || '')}">`;
     else if (x.type === 'number') inp = `<input id="f_${x.k}" type="number" inputmode="decimal" step="any" value="${esc(x.v ?? '')}" placeholder="${esc(x.ph || '')}">`;
     else inp = `<input id="f_${x.k}" type="text" ${ml} value="${esc(x.v || '')}" placeholder="${esc(x.ph || '')}">`;
     const chips = x.chips ? `<div class="chips f-chips">${x.chips.map(([val, lab]) => `<button type="button" class="chip ${String(x.v || '') === val ? 'on' : ''}" onclick="const i=document.getElementById('f_${x.k}');i.value=this.dataset.v;this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===this));haptic()" data-v="${esc(val)}">${esc(lab)}</button>`).join('')}</div>` : '';

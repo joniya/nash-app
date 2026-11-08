@@ -138,8 +138,9 @@ function budNextRepeat(x) {
   if (!x || x.repeat !== 'month') return;
   const d = parseD(x.date); const n = new Date(d.getFullYear(), d.getMonth() + 1, Math.min(d.getDate(), 28));
   const nd = ymd(n);
-  if (S.budget.some(i => i.kind === 'out' && !i.paid && i.title === x.title && ym(i.date) === ym(nd))) return;
-  S.budget.push({ id: uid(), kind: 'out', title: x.title, cat: x.cat, amount: x.amount, date: nd, note: x.note, repeat: 'month', paid: false, paidAt: '' });
+  const nid = (x.rootId || x.id) + '@' + ym(nd);   // однаковий id у обох телефонів — без дублікатів при злитті
+  if (S.budget.some(i => i.id === nid || (i.kind === 'out' && !i.paid && i.title === x.title && ym(i.date) === ym(nd)))) { x.repeat = ''; return; }
+  S.budget.push({ id: nid, rootId: x.rootId || x.id, kind: 'out', title: x.title, cat: x.cat, amount: x.amount, date: nd, note: x.note, repeat: 'month', paid: false, paidAt: '' });
   x.repeat = '';
 }
 function budCurPick() {
