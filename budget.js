@@ -85,7 +85,8 @@ function vBudget() {
     return `<button class="bud-cat ${open ? 'open' : ''}" onclick="budCatOpen=budCatOpen===this.dataset.k?'':this.dataset.k;render()" data-k="${esc(k)}"><span>${budEmoji(k, 'out')} ${esc(k)} <small>· ${items.length}</small></span><b>${bc(v)} <i class="chev">›</i></b><div class="bar"><i style="width:${Math.max(4, Math.round(v / catMax * 100))}%"></i></div></button>
     ${open ? `<div class="bud-cat-items">${items.map(x => budRow(x, true)).join('')}</div>` : ''}`; }).join('')}
     <div class="hint" style="margin-top:6px">Натисніть на категорію, щоб побачити записи</div></div>` : ''}
-  <button class="row" style="width:100%;text-align:left;margin-top:6px" onclick="budCurPick()"><div class="ic">💱</div><div class="tx"><b>Валюта бюджету</b><small>${CUR[budCur()].l}</small></div><span class="more">›</span></button>`;
+  <button class="row" style="width:100%;text-align:left;margin-top:6px" onclick="openApplePay()"><div class="ic">📲</div><div class="tx"><b>Apple Pay автоматично</b><small>Оплатили телефоном — витрата записалась сама</small></div><span class="more">›</span></button>
+  <button class="row" style="width:100%;text-align:left" onclick="budCurPick()"><div class="ic">💱</div><div class="tx"><b>Валюта бюджету</b><small>${CUR[budCur()].l}</small></div><span class="more">›</span></button>`;
 }
 
 function parseSum(s) {
@@ -182,4 +183,30 @@ function budgetCardHTML() {
     <div class="goal-sum"><span>${mon}: <b>${bc(sp)}</b> з ${bc(inc)}</span><span>${inc > 0 ? pct + '%' : ''}</span></div>
     <div class="goal-btns"><button class="btn" style="flex:1" onclick="budAdd('in')">+ Надійшло</button><button class="btn ghost" style="flex:1" onclick="budAdd('out')">− Витрата</button></div>
   </div>`;
+}
+
+/* ---- Apple Pay → бюджет через «Команди» iPhone ---- */
+async function openApplePay() {
+  if (!ONLINE) return toast('Працює, коли додаток відкритий у Telegram');
+  openSheet(`<h3>📲 Apple Pay → бюджет</h3><div class="hint">Отримую ваш особистий ключ…</div>`);
+  let r; try { r = await api('pay-key', {}); } catch (e) { r = null; }
+  if (!r || !r.key) return openSheet(`<h3>📲 Apple Pay</h3><p class="sub">Не вдалося отримати ключ. Перевірте, що сервер оновлено, і спробуйте ще раз.</p><button class="btn" style="width:100%" onclick="closeSheet()">Закрити</button>`);
+  const url = CFG.API_URL;
+  const step = (n, t) => `<div class="ap-step"><span>${n}</span><div>${t}</div></div>`;
+  const copyBtn = (val, label) => `<button class="btn ghost sm" style="width:100%;margin-top:6px" onclick="copyText(${esc(JSON.stringify(val))},this)">📋 ${label}</button>`;
+  openSheet(`<h3>📲 Apple Pay → бюджет</h3>
+    <p class="sub">Після кожної оплати Apple Pay (iPhone або годинник) витрата сама з’явиться в «Бюджеті» — з сумою, магазином і категорією. Налаштовується один раз у застосунку <b>«Команди»</b> (iOS 17+). Кожен з вас робить це на своєму iPhone.</p>
+    ${step(1, 'Відкрийте <b>«Команди»</b> (Shortcuts) → вкладка <b>«Автоматизація»</b> (Automation) → <b>«+»</b>.')}
+    ${step(2, 'Оберіть <b>«Транзакція»</b> (Transaction). Позначте свої картки, усі категорії й <b>«Запускати негайно»</b> → <b>«Далі»</b> → <b>«Нова пуста автоматизація»</b>.')}
+    ${step(3, `Додайте дію <b>«Отримати вміст URL»</b> (Get Contents of URL) і вставте адресу:${copyBtn(url, 'Скопіювати адресу')}`)}
+    ${step(4, 'Натисніть стрілку біля дії: <b>Метод</b> — <b>POST</b>, <b>Тіло запиту</b> — <b>JSON</b>.')}
+    ${step(5, `Додайте поля (тип «Текст»):
+      <div class="ap-kv"><b>action</b> = <code>pay</code></div>
+      <div class="ap-kv"><b>key</b> = ваш ключ ${copyBtn(r.key, 'Скопіювати мій ключ')}</div>
+      <div class="ap-kv"><b>amount</b> = змінна <i>Ввід команди → Сума</i> (Shortcut Input → Amount)</div>
+      <div class="ap-kv"><b>merchant</b> = змінна <i>Ввід команди → Продавець</i> (Merchant)</div>
+      <div class="ap-kv"><b>card</b> = <i>Картка</i> (необов’язково)</div>`)}
+    ${step(6, 'Збережіть. Готово! За бажанням додайте дію <b>«Показати сповіщення»</b> з «Вмістом URL», щоб бачити підтвердження.')}
+    <div class="hint" style="margin-top:10px">🔒 Ключ особистий: з ним можна лише додати витрату у ваш бюджет. Нікому його не пересилайте. Категорію додаток вгадує за назвою магазину — її завжди можна змінити. Працює лише для оплат через Apple Pay (не для звичайних онлайн-оплат карткою).</div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="closeSheet()">Зрозуміло</button>`);
 }

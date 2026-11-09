@@ -504,3 +504,8 @@ button.bud-cat{width:100%;text-align:left;background:none;border:0;padding:4px 0
 .bud-cat.open b .chev{transform:rotate(90deg)}
 .bud-cat-items{background:var(--soft);border-radius:14px;padding:2px 12px;margin:2px 0 10px}
 .bud-cat-items .row{border-color:rgba(0,0,0,.06)}
+.ap-step{display:flex;gap:10px;margin:10px 0;font-size:14.5px;line-height:1.4}
+.ap-step>span{width:24px;height:24px;border-radius:50%;background:var(--tan);color:#fff;font-weight:900;font-size:13px;display:grid;place-items:center;flex-shrink:0}
+.ap-step>div{flex:1;min-width:0}
+.ap-kv{background:var(--soft);border-radius:10px;padding:6px 10px;margin-top:6px;font-size:13.5px}
+.ap-kv code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:6px}
