@@ -1,6 +1,6 @@
 /* ===== Бюджет: надходження, заплановані й зроблені витрати ===== */
 const BUD_MONTHS = ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'];
-const BUD_OUT = [['🏠', 'Квартира'], ['💡', 'Комуналка'], ['🛒', 'Продукти'], ['🐶', 'Собака'], ['👶', 'Дитина'], ['💊', 'Здоров’я'], ['🚗', 'Транспорт'], ['📱', 'Зв’язок'], ['🍽', 'Кафе'], ['🎁', 'Подарунки'], ['👕', 'Одяг'], ['🎉', 'Розваги'], ['✈️', 'Подорожі'], ['💳', 'Кредит']];
+const BUD_OUT = [['🏠', 'Квартира'], ['💡', 'Комуналка'], ['🛒', 'Продукти'], ['🐶', 'Собака'], ['👶', 'Дитина'], ['💊', 'Здоров’я'], ['🚗', 'Транспорт'], ['📱', 'Зв’язок'], ['🍽', 'Кафе'], ['🎁', 'Подарунки'], ['👕', 'Одяг'], ['🎉', 'Розваги'], ['✈️', 'Подорожі'], ['💳', 'Кредит'], ['📦', 'Інше']];
 const BUD_IN = [['💼', 'Зарплата'], ['💻', 'Підробіток'], ['🎁', 'Подарунок'], ['↩️', 'Повернення боргу'], ['🏦', 'Відсотки'], ['💰', 'Інше']];
 let budMonth = null, budAll = false;   // budMonth = 'YYYY-MM'
 const budCur = () => S.budgetCur || 'UAH';
@@ -97,13 +97,13 @@ function budAdd(kind, x) {
     { k: 'cat', l: 'Категорія (оберіть або впишіть свою)', v: x?.cat, ph: isIn ? 'Зарплата' : 'Квартира', req: false, maxlen: 30, chips: cats.map(([e, n]) => [n, e + ' ' + n]) },
     { k: 'amount', l: 'Сума, ' + CUR[budCur()].s + ' (можна додати пізніше)', type: 'decimal', v: x && hasSum(x) ? String(x.amount).replace('.', ',') : '', ph: '0', req: false },
     { k: 'date', l: isIn ? 'Коли' : 'Коли треба / коли було', type: 'date', v: defDate, req: true },
-    ...(isIn ? [] : [{ k: 'state', l: 'Статус', type: 'select', v: x ? (x.paid ? 'paid' : 'plan') : 'plan', opts: [['plan', '🕒 Заплановано — ще не витратили'], ['paid', '✅ Вже витратили']] },
+    ...(isIn ? [] : [{ k: 'state', l: 'Статус', type: 'select', v: x ? (x.paid ? 'paid' : 'plan') : 'paid', opts: [['paid', '✅ Вже витратили'], ['plan', '🕒 Заплановано — ще не витратили']] },
       { k: 'repeat', l: 'Повторювати', type: 'select', v: x?.repeat || '', opts: [['', 'Ні'], ['month', '🔁 Щомісяця (квартира, комуналка…)']] }]),
     { k: 'note', l: 'Нотатка', v: x?.note, req: false, maxlen: 120 }
   ], v => {
     const amount = parseSum(v.amount);
     if (amount === null) return 'Перевірте суму';
-    if (!isIn && v.state === 'paid' && amount === '') return 'Щоб позначити «витратили», вкажіть суму';
+    if (!isIn && v.state === 'paid' && amount === '') { v.state = 'plan'; setTimeout(() => toast('Без суми — збережено як заплановане. Додайте суму, коли знатимете'), 80); }
     const o = { title: v.title, cat: v.cat, amount, date: v.date, note: v.note };
     if (!isIn) { o.repeat = v.repeat; o.paid = v.state === 'paid'; if (o.paid && !(x && x.paid)) o.paidAt = v.date <= today() ? v.date : today(); if (!o.paid) o.paidAt = ''; }
     if (x) Object.assign(x, o);
