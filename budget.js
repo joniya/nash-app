@@ -2,7 +2,7 @@
 const BUD_MONTHS = ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'];
 const BUD_OUT = [['🏠', 'Квартира'], ['💡', 'Комуналка'], ['🛒', 'Продукти'], ['🐶', 'Собака'], ['👶', 'Дитина'], ['💊', 'Здоров’я'], ['🚗', 'Транспорт'], ['📱', 'Зв’язок'], ['🍽', 'Кафе'], ['🎁', 'Подарунки'], ['👕', 'Одяг'], ['🎉', 'Розваги'], ['✈️', 'Подорожі'], ['💳', 'Кредит'], ['📦', 'Інше']];
 const BUD_IN = [['💼', 'Зарплата'], ['💻', 'Підробіток'], ['🎁', 'Подарунок'], ['↩️', 'Повернення боргу'], ['🏦', 'Відсотки'], ['💰', 'Інше']];
-let budMonth = null, budAll = false;   // budMonth = 'YYYY-MM'
+let budMonth = null, budAll = false, budCatOpen = '', budSpentAll = false;   // budMonth = 'YYYY-MM'
 const budCur = () => S.budgetCur || 'UAH';
 const budEmoji = (cat, kind) => ((kind === 'in' ? BUD_IN : BUD_OUT).find(([, n]) => n.toLowerCase() === String(cat || '').toLowerCase()) || [kind === 'in' ? '💰' : '💸'])[0];
 const ym = d => (d || today()).slice(0, 7);
@@ -30,12 +30,13 @@ function budgetSub() {
   return 'Залишок: ' + bc(inc - sp);
 }
 
-function budRow(x) {
+const budD = d => fmtS(d, (d || '').slice(0, 4) !== today().slice(0, 4));
+function budRow(x, noCat) {
   const late = x.kind === 'out' && !x.paid && x.date && x.date < today();
   const sum = hasSum(x) ? `<b class="bud-sum ${x.kind === 'in' ? 'in' : ''}">${x.kind === 'in' ? '+' : '−'}${bc(+x.amount)}</b>` : `<button class="pill" onclick="event.stopPropagation();budAmount('${x.id}')">＋ сума</button>`;
   const act = x.kind === 'out' && !x.paid ? `<button class="btn sm bud-paid" onclick="event.stopPropagation();budPay('${x.id}')">Витрачено</button>` : '';
   return `<div class="row bud-row${nw(x)}" onclick="budMenu('${x.id}')"><div class="ic">${budEmoji(x.cat, x.kind)}</div>
-    <div class="tx"><b>${esc(x.title)}</b><small style="${late ? 'color:#D98A2B' : ''}">${[x.cat && x.cat !== x.title ? esc(x.cat) : '', x.kind === 'out' && x.paid ? 'витрачено ' + fmtS(x.paidAt || x.date) : fmtS(x.date), x.repeat === 'month' ? '🔁 щомісяця' : '', late ? 'термін минув' : '', x.note ? esc(x.note) : ''].filter(Boolean).join(' · ')}</small></div>
+    <div class="tx"><b>${esc(x.title)}</b><small style="${late ? 'color:#D98A2B' : ''}">${[!noCat && x.cat && x.cat !== x.title ? esc(x.cat) : '', x.kind === 'out' && x.paid ? 'витрачено ' + budD(x.paidAt || x.date) : budD(x.date), x.repeat === 'month' ? '🔁 щомісяця' : '', late ? 'термін минув' : '', x.note ? esc(x.note) : ''].filter(Boolean).join(' · ')}</small></div>
     <div class="bud-r">${sum}${act}</div></div>`;
 }
 
@@ -78,8 +79,12 @@ function vBudget() {
   <div class="card" style="padding:6px 16px">${planned.length ? planned.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(budRow).join('') : '<div class="empty" style="margin:10px 0">Запишіть, на що треба буде витратити — квартира, ліки для собаки… Суму можна додати пізніше.</div>'}</div>
   <div class="lbl">⬆️ Надходження</div>
   <div class="card" style="padding:6px 16px">${income.length ? income.sort(byDate).map(budRow).join('') : '<div class="empty" style="margin:10px 0">Зарплата, підробіток, подарунки…</div>'}</div>
-  ${spent.length ? `<div class="lbl">✅ Витрачено</div><div class="card" style="padding:6px 16px">${spent.sort((a, b) => (b.paidAt || b.date || '').localeCompare(a.paidAt || a.date || '')).map(budRow).join('')}</div>` : ''}
-  ${catList.length ? `<div class="lbl">📊 На що пішли гроші</div><div class="card">${catList.map(([k, v]) => `<div class="bud-cat"><span>${budEmoji(k, 'out')} ${esc(k)}</span><b>${bc(v)}</b><div class="bar"><i style="width:${Math.max(4, Math.round(v / catMax * 100))}%"></i></div></div>`).join('')}</div>` : ''}
+  ${spent.length ? (() => { const all = spent.sort((a, b) => (b.paidAt || b.date || '').localeCompare(a.paidAt || a.date || '')), shown = budSpentAll ? all : all.slice(0, 3);
+    return `<div class="lbl">✅ Витрачено · ${all.length}</div><div class="card" style="padding:6px 16px">${shown.map(budRow).join('')}${all.length > 3 ? `<button class="link-btn" style="margin:8px auto" onclick="budSpentAll=!budSpentAll;render()">${budSpentAll ? 'Згорнути ▲' : 'Показати всі (' + all.length + ') ▼'}</button>` : ''}</div>`; })() : ''}
+  ${catList.length ? `<div class="lbl">📊 На що пішли гроші</div><div class="card">${catList.map(([k, v]) => { const items = spent.filter(x => hasSum(x) && (x.cat || x.title) === k), open = budCatOpen === k;
+    return `<button class="bud-cat ${open ? 'open' : ''}" onclick="budCatOpen=budCatOpen===this.dataset.k?'':this.dataset.k;render()" data-k="${esc(k)}"><span>${budEmoji(k, 'out')} ${esc(k)} <small>· ${items.length}</small></span><b>${bc(v)} <i class="chev">›</i></b><div class="bar"><i style="width:${Math.max(4, Math.round(v / catMax * 100))}%"></i></div></button>
+    ${open ? `<div class="bud-cat-items">${items.map(x => budRow(x, true)).join('')}</div>` : ''}`; }).join('')}
+    <div class="hint" style="margin-top:6px">Натисніть на категорію, щоб побачити записи</div></div>` : ''}
   <button class="row" style="width:100%;text-align:left;margin-top:6px" onclick="budCurPick()"><div class="ic">💱</div><div class="tx"><b>Валюта бюджету</b><small>${CUR[budCur()].l}</small></div><span class="more">›</span></button>`;
 }
 

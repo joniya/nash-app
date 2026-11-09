@@ -498,3 +498,9 @@ body.sheet-open nav,body.sheet-open::after,body.gated::after{display:none}
 .grid4.compact .gcard b{font-size:13px;line-height:1.2}
 .grid4.compact .gcard small{display:none}
 .bud-card .goal-tt b .neg{color:#D9645A}
+button.bud-cat{width:100%;text-align:left;background:none;border:0;padding:4px 0;color:inherit;font:inherit}
+.bud-cat span small{color:var(--muted);font-weight:700;font-size:12px}
+.bud-cat b .chev{font-style:normal;display:inline-block;color:var(--muted);transition:transform .2s;margin-left:4px}
+.bud-cat.open b .chev{transform:rotate(90deg)}
+.bud-cat-items{background:var(--soft);border-radius:14px;padding:2px 12px;margin:2px 0 10px}
+.bud-cat-items .row{border-color:rgba(0,0,0,.06)}
