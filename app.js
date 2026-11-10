@@ -307,7 +307,7 @@ function vHome() {
   } else if (homeSeg === 'tasks') {
     const list = [...S.tasks].sort((a, b) => (a.done - b.done) || ((a.date || '9999').localeCompare(b.date || '9999')));
     body = `<button class="btn" style="width:100%;margin-bottom:12px" onclick="addTask()">+ Нова справа</button>
-    ${list.length ? list.map(t => { const late = !t.done && t.date && t.date < today(); return `<div class="item ${t.done ? 'done' : ''}${nw(t)}" style="align-items:center"><button class="check ${t.done ? 'on' : ''}" onclick="toggle('tasks','${t.id}')">${t.done ? '✓' : ''}</button><div class="tx"><div class="tt" style="font-size:15.5px">${esc(t.title)}</div>${t.date || t.repeat ? `<div class="ds" ${late ? 'style="color:#D9645A"' : ''}>${t.date ? '📅 ' + fmtS(t.date, false) : ''}${t.repeat ? ' · 🔁 ' + REPEAT[t.repeat] : ''}${late ? ' · прострочено' : ''}</div>` : ''}</div>${byTag(t)}<button class="more" onclick="taskMenu('${t.id}')">⋯</button></div>`; }).join('') : `<div class="empty">${BEAGLE}Справ немає — можна відпочивати!</div>`}`;
+    ${list.length ? list.map(t => { const late = !t.done && t.date && t.date < today(); return `<div class="item ${t.done ? 'done' : ''}${nw(t)}" style="align-items:center"><button class="check ${t.done ? 'on' : ''}" onclick="toggle('tasks','${t.id}')">${t.done ? '✓' : ''}</button><div class="tx"><div class="tt" style="font-size:15.5px">${esc(t.title)}</div>${t.date || t.repeat ? `<div class="ds" ${late ? 'style="color:#D9645A"' : ''}>${t.date ? '📅 ' + fmtS(t.date, false) : ''}${t.time ? ' · ⏰ ' + esc(t.time) + (t.who && t.who !== 'both' ? ' для ' + esc(S.names[t.who] || '') : '') : ''}${t.repeat ? ' · 🔁 ' + REPEAT[t.repeat] : ''}${late ? ' · прострочено' : ''}</div>` : ''}</div>${byTag(t)}<button class="more" onclick="taskMenu('${t.id}')">⋯</button></div>`; }).join('') : `<div class="empty">${BEAGLE}Справ немає — можна відпочивати!</div>`}`;
   } else {
     body = `<p class="sub">Рецепти і страви, які нам подобаються.</p>
     <button class="tile dark" style="width:100%;margin-bottom:12px" onclick="randomRecipe()"><span class="ti">🎲</span><b>Випадковий рецепт</b><small>Нехай жереб вирішить, що готувати</small></button>
@@ -923,8 +923,16 @@ function toggle(list, id) {
 }
 function addTask(t) {
   formSheet(t ? 'Редагувати справу' : 'Нова справа', [{ k: 'title', l: 'Що зробити', v: t?.title }, { k: 'date', l: 'Коли (необов’язково)', type: 'date', v: t?.date, req: false },
+    { k: 'time', l: '⏰ Нагадати о (бот надішле повідомлення)', type: 'time', v: t?.time, req: false },
+    { k: 'who', l: 'Кому нагадати', type: 'select', v: t?.who || 'both', opts: [['both', '👫 Обом'], ['a', '🙋 ' + (S.names.a || 'Мені')], ['b', '🙋 ' + (S.names.b || 'Партнеру')]] },
     { k: 'repeat', l: 'Повторювати', type: 'select', v: t?.repeat || '', opts: [['', 'Не повторювати'], ...Object.entries(REPEAT)] }],
-    v => { if (v.repeat && !v.date) v.date = today(); if (t) Object.assign(t, v); else S.tasks.push({ id: uid(), title: v.title, date: v.date, repeat: v.repeat, done: false }); });
+    v => {
+      if ((v.repeat || v.time) && !v.date) v.date = today();
+      if (v.time && v.date === today() && v.time <= new Date().toTimeString().slice(0, 5)) setTimeout(() => toast('Цей час сьогодні вже минув — нагадування не прийде'), 80);
+      else if (v.time && !ONLINE) setTimeout(() => toast('Нагадування надсилає бот, коли додаток підключено до сервера'), 80);
+      else if (v.time) setTimeout(() => toast('⏰ Бот нагадає ' + (v.date === today() ? 'сьогодні' : fmtS(v.date, false)) + ' о ' + v.time), 80);
+      if (t) Object.assign(t, v); else S.tasks.push({ id: uid(), title: v.title, date: v.date, time: v.time, who: v.who, repeat: v.repeat, done: false });
+    });
 }
 function taskMenu(id) { const t = S.tasks.find(x => x.id === id); itemMenu('tasks', id, [['✎ Редагувати', () => { addTask(t); return 'keep'; }]]); }
 function addRecipe(r) { formSheet(r ? 'Редагувати рецепт' : 'Новий рецепт', [{ k: 'title', l: 'Назва страви', v: r?.title }, { k: 'desc', l: 'Інгредієнти / посилання', type: 'textarea', v: r?.desc, req: false }], v => { if (r) Object.assign(r, v); else S.recipes.push({ id: uid(), ...v }); }); }
